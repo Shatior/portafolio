@@ -77,6 +77,8 @@ def interpretar(base: str) -> Base:
     for prohibido, porque in (
         (" ", "un espacio no sobrevive a un atributo HTML sin escaparse"),
         ("\t", "un tabulador no sobrevive a un atributo HTML sin escaparse"),
+        ("\n", "un salto de línea no sobrevive a un atributo HTML sin escaparse"),
+        ("\r", "un retorno de carro no sobrevive a un atributo HTML sin escaparse"),
         ("?", "una cadena de consulta convertiría cada ruta interna en una petición distinta"),
         ("#", "un fragmento haría que toda ruta interna apuntase a la misma página"),
         ("..", "un salto hacia arriba deja de ser un prefijo"),
@@ -87,8 +89,6 @@ def interpretar(base: str) -> Base:
     # El esquema es insensible a mayúsculas, y rechazar `HTTPS://…` con un mensaje que pide una
     # URL absoluta es decirle a quien la escribió que escriba lo que ya escribió.
     if not base.lower().startswith(("http://", "https://")):
-        # `//host/camino` empieza por barra y **no es una ruta**: es una referencia de red, que
-        # el navegador resolvería contra otro host conservando el esquema.
         pista = (
             " Empieza por `//`, que es un host y no una ruta."
             if base.startswith("//")
@@ -100,4 +100,21 @@ def interpretar(base: str) -> Base:
     host, barra, camino = resto.partition("/")
     if not host:
         raise ValueError(f"`--base` no declara host: {original!r}")
-    return Base(origen=f"{esquema.lower()}://{host}", prefijo=f"{barra}{camino}".rstrip("/"))
+
+    prefijo = f"{barra}{camino}".rstrip("/")
+
+    # **`//` dentro del prefijo, y no al principio del `--base`.** Lo encontró la revisión: la
+    # guarda anterior solo miraba el arranque de la cadena, y desde que `--base` tiene que ser
+    # absoluta esa rama ya no la alcanza nadie. Con `https://host//portafolio` el prefijo sale
+    # como `//portafolio` y **toda** ruta interna queda escrita `//portafolio/...`, que el
+    # navegador resuelve como host — un sitio que promete no cargar recursos de terceros los
+    # pediría todos a `portafolio`, con la construcción en verde.
+    if prefijo.startswith("//"):
+        raise ValueError(
+            f"el prefijo de `--base` empieza por `//`, que el navegador lee como un host y no "
+            f"como una ruta: {original!r}. Sobra una barra después del host."
+        )
+
+    # El host es insensible a mayúsculas; el camino **no**, y por eso solo se normaliza el host.
+    # Sin esto, la canónica de una misma página cambia según cómo se teclee el `--base`.
+    return Base(origen=f"{esquema.lower()}://{host.lower()}", prefijo=prefijo)

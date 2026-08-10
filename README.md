@@ -168,16 +168,36 @@ Tres pasos, y el orden importa:
    prefijo**: el sitio pasa a vivir en una raíz y las rutas internas se acortan solas.
 
 `test_el_despliegue_pasa_la_url_con_la_que_se_sirve` y
-`test_no_se_escribe_cname_en_ninguna_construccion` romperán al hacerlo. Es su función: obligar a
-que la URL de publicación, el `CNAME` y la batería se muevan juntos, en vez de descubrir en
-producción que solo se movió uno.
+`test_no_se_escribe_cname_en_ninguna_construccion` romperán al hacerlo, y hay que actualizar los
+dos. Es su función: obligar a que el DNS, el `CNAME` y la URL de publicación se muevan juntos, en
+vez de descubrir en producción que solo se movió uno.
+
+El mismo procedimiento, con el mismo orden, está escrito en `construir.py` junto al sitio exacto
+donde va el `CNAME`. **El DNS va primero** porque declarar el dominio en Pages antes de que
+resuelva deja el sitio inalcanzable mientras tanto: el `CNAME` hace que Pages redirija la URL
+`github.io` hacia el dominio nuevo, y si ese dominio aún no apunta a ninguna parte, se pierde
+también la que funcionaba.
 
 #### Lo que la batería no cubre
 
 La batería sustantiva ahora sí se ejercita sobre la construcción que se publica —bajo prefijo—;
 durante la etapa anterior corría sobre una construcción en raíz que nadie publicaba, y esa
 asimetría fue un hallazgo de la revisión. Lo que sigue sin cubrirse es el **renderizado real en
-un navegador**: la comprobación es estática sobre el HTML y el CSS generados.
+un navegador**: la comprobación es estática sobre el HTML y el CSS generados. Tampoco se ha
+observado el comportamiento de Pages sin `CNAME`, ni la construcción contra los informes reales
+del pipeline.
+
+## Sin vía de contacto, por ahora
+
+**El sitio no ofrece ninguna forma de contactar**, y es una decisión, no un olvido. El pie
+enlazaba a `contacto@vigiabref.com`: un buzón de un dominio descartado que nunca recibió nada. En
+un sitio cuyo lema es «Aquí puedes comprobarlo», una dirección que no responde es la afirmación
+más fácil de desmentir que puede llevar — basta escribir.
+
+Se repone cuando haya un buzón que conteste, en `sitio/contenido.py` y en el pie de
+`sitio/render.py`; hasta entonces `test_el_pie_no_ofrece_un_buzon_que_no_recibe` impide que
+vuelva por descuido. El enlace al repositorio se mantiene, pero no es un canal de contacto: es la
+invitación a comprobar.
 
 ### GitHub Pages y la visibilidad del repositorio
 

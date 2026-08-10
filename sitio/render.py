@@ -41,8 +41,9 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
       rotulado con su dirección hay que reetiquetarlo cada vez que se muda, y este ya se ha
       mudado. El enlace sí sigue al prefijo.
     - **El pie no ofrece dirección de contacto.** La que había era de un dominio descartado y
-      nunca recibió nada; el motivo largo está en `contenido.CORREO`. El enlace al repositorio se
-      queda porque no es un canal de contacto: es la invitación a comprobar.
+      nunca recibió nada; el motivo largo está en `contenido.py`, donde estuvo la constante
+      `CORREO` y hoy queda su nota. El enlace al repositorio se mantiene porque no es un canal de
+      contacto: es la invitación a comprobar.
     """
 
     nav = [

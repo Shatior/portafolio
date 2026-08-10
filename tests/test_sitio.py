@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from construir import construir
 
+RAIZ = Path(__file__).parent.parent
 FIXTURES = Path(__file__).parent / "fixtures"
 
 #: La URL bajo la que se publica hoy el sitio. **Es la misma que pasa `desplegar.yml`**, y la
@@ -426,32 +429,70 @@ def test_un_prefijo_relativo_se_rechaza_y_no_borra_el_sitio_anterior(tmp_path):
 @pytest.mark.parametrize(
     "base",
     [
-        "//evil.example/portafolio",  # empieza por barra y **es un host**: referencia de red
-        "/portafolio?v=2",
-        "/portafolio#inicio",
-        "/portafolio/../otro",
-        "/porta folio",
+        # Prefijos sueltos: ya no hay dominio del que colgarlos.
+        "portafolio",
+        "/portafolio",
+        "//evil.example/portafolio",
+        # Absolutas y aun así inservibles. **Estos cinco no llegaban a comprobarse**: la lista
+        # anterior eran todos prefijos sin esquema, de modo que los paraba la comprobación de
+        # URL absoluta y la de caracteres prohibidos no se ejercitaba nunca. Lo encontró la
+        # revisión quitando el rechazo del espacio y del `#` sin que muriera un solo test.
+        "https://shatior.github.io/portafolio?v=2",
+        "https://shatior.github.io/portafolio#inicio",
+        "https://shatior.github.io/portafolio/../otro",
+        "https://shatior.github.io/porta folio",
+        "https://shatior.github.io/porta\nfolio",
+        # Absoluta, con esquema, y con **el prefijo** empezando por `//`: sobra una barra tras el
+        # host y toda ruta interna sale como referencia de red hacia `portafolio`.
+        "https://shatior.github.io//portafolio",
+        "https://",
     ],
 )
-def test_un_base_que_no_es_un_prefijo_se_rechaza(tmp_path, base):
-    """«Empieza por `/`» no basta para ser una ruta.
+def test_un_base_inservible_se_rechaza(tmp_path, base):
+    """Ser una URL absoluta no basta para ser una base.
 
-    `//evil.example/x` empieza por barra y el navegador la resuelve **contra otro host**: un
-    sitio que promete no cargar recursos de terceros los cargaría todos, y sin salir de la
-    comprobación que lo daba por bueno.
+    El caso que más importa es `https://host//portafolio`: pasa el filtro de URL absoluta, y el
+    prefijo que sale de él —`//portafolio`— el navegador lo lee como un host. Un sitio que
+    promete no cargar recursos de terceros los pediría todos a otro sitio, **con la construcción
+    en verde**.
     """
 
     assert construir(FIXTURES, tmp_path / f"salida-{abs(hash(base))}", base) == 1
 
 
-def test_el_esquema_en_mayusculas_se_acepta(tmp_path):
-    """Rechazar `HTTPS://…` pidiendo «una URL absoluta» es pedir lo que ya se escribió."""
+def test_el_esquema_en_mayusculas_se_acepta_y_el_host_se_normaliza(tmp_path):
+    """Rechazar `HTTPS://…` pidiendo «una URL absoluta» es pedir lo que ya se escribió.
+
+    El host además se pasa a minúsculas: es insensible a mayúsculas, y sin normalizarlo la
+    canónica de una misma página cambia según cómo se teclee el `--base`. El camino **no** se
+    toca, que sí distingue mayúsculas.
+    """
 
     destino = tmp_path / "mayusculas"
-    assert construir(FIXTURES, destino, "HTTPS://Shatior.github.io/portafolio") == 0
-    assert '<link rel="canonical" href="https://Shatior.github.io/portafolio/">' in (destino / "index.html").read_text(
+    assert construir(FIXTURES, destino, "HTTPS://Shatior.GitHub.io/portafolio") == 0
+    assert '<link rel="canonical" href="https://shatior.github.io/portafolio/">' in (destino / "index.html").read_text(
         encoding="utf-8"
     )
+
+
+def test_el_guion_base_es_obligatorio_al_invocar_el_programa(tmp_path):
+    """**`required=True` no lo cubría nada.** La revisión lo demostró sustituyéndolo por un valor
+    por defecto sin que muriera un solo test: ninguno invocaba `construir.py` como proceso, de
+    modo que «olvidarlo no compila» era una afirmación sobre `argparse`, no una comprobación.
+
+    Se ejecuta el programa de verdad, que es el único sitio donde ese contrato existe.
+    """
+
+    proceso = subprocess.run(
+        [sys.executable, str(RAIZ / "construir.py"), "--informes", str(FIXTURES), "--salida", str(tmp_path / "p")],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+    assert proceso.returncode != 0, "construir.py acepta ejecutarse sin `--base`"
+    assert "--base" in proceso.stderr
+    assert not (tmp_path / "p").exists()
 
 
 # --- Móvil ----------------------------------------------------------------------------

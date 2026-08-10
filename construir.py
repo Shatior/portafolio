@@ -84,17 +84,21 @@ def construir(dir_informes: Path, destino: Path, base: str) -> int:
     # solo puede hacer daño — apuntaría a un nombre que no resuelve y dejaría inalcanzable la
     # única URL que sí funciona.
     #
-    # **Cómo se reactiva el día que haya dominio**, que son tres pasos y ninguno toca este
-    # comentario:
+    # **Cómo se reactiva el día que haya dominio.** Tres pasos, en este orden — el mismo que el
+    # README, que es donde se explica por qué el DNS va primero:
     #
-    #   1. Añadir aquí `(destino / "CNAME").write_text("elnuevodominio.com\n", encoding="utf-8")`,
+    #   1. Apuntar los registros DNS del dominio a Pages y declararlo en `Settings → Pages`.
+    #   2. Añadir aquí `(destino / "CNAME").write_text("elnuevodominio.com\n", encoding="utf-8")`,
     #      en la **raíz** del sitio publicado y no dentro de `estatico/`: ahí Pages lo serviría
     #      como un fichero más y el dominio no se aplicaría.
-    #   2. Apuntar los registros DNS del dominio a Pages y declararlo en `Settings → Pages`.
     #   3. Cambiar `--base` en `.github/workflows/desplegar.yml` a `https://elnuevodominio.com`,
     #      **sin prefijo**: el sitio pasa a vivir en una raíz y las rutas internas se acortan
-    #      solas. `test_el_despliegue_pasa_el_prefijo_con_el_que_se_sirve` romperá al hacerlo, y
-    #      esa es su función: obligar a que las dos cosas se muevan juntas.
+    #      solas.
+    #
+    # Romperán **dos** tests, y hay que actualizar los dos: `test_el_despliegue_pasa_la_url_con_
+    # la_que_se_sirve` (fija la URL de publicación) y `test_no_se_escribe_cname_en_ninguna_
+    # construccion` (fija que hoy no hay ninguno). Es su función: obligar a que el DNS, el CNAME
+    # y la URL se muevan juntos.
     #
     # No se deja el código escrito y desactivado tras una condición: una rama que nadie ejecuta
     # no es una funcionalidad lista, es una que nadie ha probado con el aspecto de estarlo.
