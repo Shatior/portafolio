@@ -61,6 +61,8 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
 <body>
 <a class="saltar" href="#principal">Saltar al contenido</a>
 <header class="barra">
+  <!-- La marca dice `vigiabref.com` aunque la copia provisional se sirva en otro host: es el
+       nombre del sitio, no su dirección. El enlace sí sigue al prefijo. -->
   <a class="marca" href="{esc(base.ruta("/"))}">vigiabref.com</a>
   <nav class="nav" aria-label="Secciones">{enlaces}</nav>
 </header>

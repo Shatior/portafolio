@@ -144,9 +144,11 @@ hacer con una laguna.
 
 #### Mientras tanto, el sitio se sirve bajo un prefijo
 
-Pages está activado con origen GitHub Actions, de modo que **el sitio se publica hoy en
-[`shatior.github.io/portafolio/`](https://shatior.github.io/portafolio/)** — bajo un
-subdirectorio, no en la raíz de un dominio.
+Pages está activado con origen GitHub Actions —**lo reporta el propietario del repositorio el
+2026-08-10; no se ha comprobado desde la sesión que escribe esto, cuyo acceso de red no alcanza
+`shatior.github.io`**— de modo que el sitio se publica en
+[`shatior.github.io/portafolio/`](https://shatior.github.io/portafolio/): bajo un subdirectorio,
+no en la raíz de un dominio.
 
 Eso no es un detalle de URL: el sitio se escribió con rutas internas absolutas —`/informes/`,
 `/estatico/estilo.css`—, que son lo correcto en la raíz de `vigiabref.com` y **lo único
@@ -162,10 +164,23 @@ Lo resuelve `--base`, que el workflow de despliegue pasa como
 **todos** los `href` y `src` de todas las páginas, no una lista de los que hoy existen: el modo
 de fallo es que alguien añada mañana la ruta número catorce.
 
+**La copia provisional no lleva `CNAME`, y eso lo encontró la revisión.** Pages no lee ese
+fichero como un rótulo sino como *el dominio de este repositorio*, y redirige la URL `github.io`
+hacia él: publicar la copia reclamando un dominio que hoy no resuelve la dejaría inalcanzable, y
+el prefijo existe justo para lo contrario. `dominio.txt` **no se toca** y la construcción sin
+`--base` escribe el `CNAME` igual que siempre; lo que se omite es reclamar el dominio desde una
+copia que no vive en él.
+
 **El prefijo se retira el día que `vigiabref.com` resuelva.** Es una línea del workflow, y sin
-ella el sitio vuelve a construirse desde la raíz — el resultado es byte a byte el de siempre, y
-hay un test que lo fija (`test_sin_prefijo_el_sitio_es_identico_al_de_siempre`). El `CNAME` y
-`dominio.txt` no se tocan mientras tanto: siguen siendo correctos para el destino final.
+ella el sitio vuelve a construirse desde la raíz, con su `CNAME`. Dos avisos sobre el alcance de
+los tests, porque prometer de más es el defecto que este proyecto persigue:
+
+- `test_el_base_vacio_y_el_por_defecto_producen_el_mismo_sitio` compara la rama **consigo
+  misma**. Contra el sitio anterior al cambio sí hay una diferencia, y es intencionada y única:
+  la tipografía pasó a citarse relativa a la hoja en `estatico/estilo.css`.
+- La batería sustantiva —sin recursos de terceros, sin JavaScript, destinos externos, móvil—
+  se ejercita sobre la construcción **en raíz**, que durante el provisional es precisamente la
+  que nadie publica. Bajo prefijo solo se comprueban las rutas, las canónicas y el `CNAME`.
 
 ### GitHub Pages y la visibilidad del repositorio
 

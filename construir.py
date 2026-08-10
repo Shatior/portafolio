@@ -76,13 +76,24 @@ def construir(dir_informes: Path, destino: Path, base: str = "") -> int:
     # GitHub Pages exige el CNAME en la **raíz** del sitio publicado, no dentro de `estatico/`:
     # ahí lo serviría como un fichero más y el dominio propio no se aplicaría.
     #
-    # **No lleva prefijo ni depende de `--base`, y es deliberado.** El CNAME no es una ruta del
-    # sitio: es el dominio que este sitio reclama como suyo. Servir la copia provisional bajo
-    # otro host no cambia cuál es ese dominio.
-    (destino / "CNAME").write_text(f"{dominio}\n", encoding="utf-8")
+    # **Solo se escribe cuando el sitio se publica en su propio dominio**, y esto lo encontró la
+    # revisión. El CNAME no es un rótulo: Pages lo lee como *el dominio de este repositorio* y
+    # redirige la URL `github.io` hacia él. Publicando la copia provisional con un CNAME que
+    # nombra un dominio que **hoy no resuelve**, el sitio no quedaría feo — quedaría inalcanzable,
+    # y el prefijo que existe justo para hacerlo alcanzable no serviría de nada.
+    #
+    # El dominio en sí no se toca: `dominio.txt` sigue diciendo lo mismo y la construcción sin
+    # `--base` escribe el CNAME igual que siempre. Lo que se omite es reclamar el dominio desde
+    # una copia que no vive en él.
+    if donde.origen == f"https://{dominio}":
+        (destino / "CNAME").write_text(f"{dominio}\n", encoding="utf-8")
 
     # Sin JavaScript en el sitio, de modo que no hay nada que rastrear; el `robots.txt` existe
     # para no dejar el 404 que algunos rastreadores registran como error del dominio.
+    #
+    # Bajo prefijo acaba en `/portafolio/robots.txt`, donde **ningún rastreador lo lee**: el
+    # protocolo lo busca en la raíz del host. Se escribe igualmente —es el fichero del sitio, y
+    # el sitio definitivo sí vivirá en una raíz— sabiendo que durante el provisional es inerte.
     (destino / "robots.txt").write_text(
         f"User-agent: *\nAllow: /\nSitemap: {donde.url('/sitemap.xml')}\n", encoding="utf-8"
     )

@@ -63,21 +63,45 @@ def interpretar(base: str, dominio: str) -> Base:
     ruta relativa significa cosas distintas en `/` y en `/informes/2026-08-03/`.
     """
 
+    original = base
     base = base.strip().rstrip("/")
     if not base:
         return Base(origen=f"https://{dominio}", prefijo="")
 
-    if base.startswith(("http://", "https://")):
+    # Nada de esto tiene sentido en un prefijo de ruta ni en un origen, y todo ello colaba por
+    # una comprobación que solo miraba la barra inicial. Se rechaza antes de repartir.
+    for prohibido, porque in (
+        (" ", "un espacio no sobrevive a un atributo HTML sin escaparse"),
+        ("\t", "un tabulador no sobrevive a un atributo HTML sin escaparse"),
+        ("?", "una cadena de consulta convertiría cada ruta interna en una petición distinta"),
+        ("#", "un fragmento haría que toda ruta interna apuntase a la misma página"),
+        ("..", "un salto hacia arriba deja de ser un prefijo"),
+    ):
+        if prohibido in base:
+            raise ValueError(f"`--base` no admite {prohibido!r}: {original!r} — {porque}")
+
+    # El esquema es insensible a mayúsculas, y rechazar `HTTPS://…` con un mensaje que pide una
+    # URL absoluta es decirle a quien la escribió que escriba lo que ya escribió.
+    if base.lower().startswith(("http://", "https://")):
         esquema, _, resto = base.partition("://")
         host, barra, camino = resto.partition("/")
         if not host:
-            raise ValueError(f"`--base` no declara host: {base!r}")
+            raise ValueError(f"`--base` no declara host: {original!r}")
         prefijo = f"{barra}{camino}".rstrip("/")
-        return Base(origen=f"{esquema}://{host}", prefijo=prefijo)
+        return Base(origen=f"{esquema.lower()}://{host}", prefijo=prefijo)
+
+    # `//host/camino` **empieza por barra y no es una ruta**: es una referencia de red, y el
+    # navegador la resolvería contra otro host conservando el esquema. Un sitio que promete no
+    # cargar recursos de terceros los cargaría todos, y «empieza por `/`» lo daba por bueno.
+    if base.startswith("//"):
+        raise ValueError(
+            f"`--base` empieza por `//`, que es un host y no una ruta: {original!r}. "
+            "Para publicar en otro host, decláralo entero: `https://host/prefijo`."
+        )
 
     if not base.startswith("/"):
         raise ValueError(
-            f"`--base` tiene que ser una URL absoluta o un prefijo que empiece por `/`: {base!r}. "
+            f"`--base` tiene que ser una URL absoluta o un prefijo que empiece por `/`: {original!r}. "
             "Un prefijo relativo se resolvería contra la página que lo escribe, y las hay a dos "
             "niveles de profundidad."
         )

@@ -255,13 +255,20 @@ def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio_con_prefijo):
     sin tipografía y con la navegación entera apuntando a la raíz de un host ajeno, y **la
     construcción termina en verde**: no hay nada en el árbol de salida que delate el fallo.
 
-    Se comprueba sobre **todos** los `href` y `src` de todas las páginas, no sobre una lista de
-    los que hoy existen: el modo de fallo es que alguien añada mañana la ruta número catorce.
+    Se comprueba sobre **todas** las rutas de todas las páginas, no sobre una lista de las que
+    hoy existen: el modo de fallo es que alguien añada mañana la ruta número catorce.
+
+    La revisión encontró que mirar solo `href` y `src` dejaba una vía abierta: `render.py` ya
+    escribe atributos `style`, y un `style="background-image:url(/estatico/fondo.png)"` es
+    exactamente el fallo que este test dice impedir. Ahora se miran también los `url()` en línea
+    y el resto de atributos por los que un navegador pide un fichero.
     """
 
     for pagina in _paginas(sitio_con_prefijo):
         html = pagina.read_text(encoding="utf-8")
-        rutas = re.findall(r'(?:href|src)="([^"]+)"', html)
+        rutas = re.findall(r'(?:href|src|srcset|poster|action|data|content)="([^"]+)"', html)
+        # `url(...)` en un atributo `style`, que no es un atributo de ruta y carga igual.
+        rutas += re.findall(r'url\(\s*["\']?([^"\')\s]+)', html)
         absolutas = [r for r in rutas if r.startswith("/")]
 
         assert absolutas, f"{pagina.name} no trae ninguna ruta interna: el test no vigila nada"
@@ -302,21 +309,53 @@ def test_las_canonicas_y_el_sitemap_declaran_donde_se_sirve_la_copia(sitio_con_p
     assert f"Sitemap: {BASE_PROVISIONAL}/sitemap.xml" in robots
 
 
-def test_el_cname_no_lleva_prefijo_ni_cambia_con_el_host_provisional(sitio_con_prefijo):
-    """El CNAME no es una ruta: es el dominio que el sitio reclama como suyo.
+def test_la_copia_provisional_no_reclama_el_dominio_propio(sitio_con_prefijo, sitio):
+    """**El bloqueante de la pasada 2.** Pages lee el CNAME como *el dominio de este
+    repositorio* y redirige la URL `github.io` hacia él. Publicando la copia provisional con un
+    CNAME que nombra un dominio que hoy no resuelve, el sitio no queda feo: queda inalcanzable,
+    y el prefijo que existe para hacerlo alcanzable no sirve de nada.
 
-    Reescribirlo con el host provisional entregaría el dominio propio el día que se recupere.
+    La versión anterior de este test fijaba exactamente lo contrario —que el CNAME estuviera—,
+    de modo que blindaba el defecto en lugar de vigilarlo.
+
+    El dominio **no se toca**: construido sin `--base`, el CNAME se escribe igual que siempre, y
+    eso se comprueba aquí al lado para que suprimirlo de más también muera.
     """
 
-    assert (sitio_con_prefijo / "CNAME").read_text(encoding="utf-8").strip() == "vigiabref.com"
+    assert not (sitio_con_prefijo / "CNAME").exists(), (
+        "la copia provisional reclama el dominio propio: Pages redirigiría la URL que sí "
+        "funciona hacia una que no resuelve"
+    )
+    assert (sitio / "CNAME").read_text(encoding="utf-8").strip() == "vigiabref.com"
 
 
-def test_sin_prefijo_el_sitio_es_identico_al_de_siempre(sitio, tmp_path):
-    """«Vacío por defecto» tiene que significar **byte a byte lo de antes**, no «parecido».
+def test_el_despliegue_pasa_el_prefijo_con_el_que_se_sirve(sitio_con_prefijo):
+    """El workflow es la única pieza que decide **dónde** se publica, y no la cubría nada.
 
-    Se construye una segunda vez pasando `base=""` explícitamente y se comparan los dos árboles
-    completos. Si el prefijo se colara en el camino por defecto —una barra de más, un origen
-    recompuesto—, aquí se ve; en una lista de rutas esperadas, no.
+    Retirar `--base` de `desplegar.yml` dejaba los 43 tests en verde y publicaba un sitio con
+    todas las rutas apuntando a la raíz de `shatior.github.io`. Este test lo ata al valor con el
+    que se construye la copia provisional: el día que `vigiabref.com` resuelva, romperá — y esa
+    es su función, obligar a retirar las dos cosas a la vez y no solo una.
+    """
+
+    workflow = (Path(__file__).parent.parent / ".github/workflows/desplegar.yml").read_text(encoding="utf-8")
+
+    assert f"--base {BASE_PROVISIONAL}" in workflow, (
+        "el despliegue no pasa `--base`: publicaría el sitio con las rutas apuntando a la raíz "
+        "del host. Si el dominio propio ya resuelve, retira también este test."
+    )
+
+
+def test_el_base_vacio_y_el_por_defecto_producen_el_mismo_sitio(sitio, tmp_path):
+    """Pasar `--base ""` y no pasarlo tienen que ser **el mismo árbol, byte a byte**.
+
+    **Lo que este test NO comprueba, y la revisión tuvo razón en señalarlo.** Su nombre anterior
+    —«idéntico al de siempre»— prometía una comparación contra el sitio *anterior al cambio*, y
+    lo que hace es comparar la rama consigo misma: detecta que el prefijo se cuele en el camino
+    por defecto —una barra de más, un origen recompuesto—, y **nada más**.
+
+    Y la promesa mayor era falsa: contra `main` sí hay una diferencia, en `estatico/estilo.css`,
+    porque la tipografía pasó a ser relativa a la hoja. Es intencionada y es la única.
     """
 
     destino = tmp_path / "sin-base-explicita"
@@ -345,6 +384,37 @@ def test_un_prefijo_relativo_se_rechaza_y_no_borra_el_sitio_anterior(tmp_path):
 
     assert construir(FIXTURES, destino, "portafolio") == 1
     assert (destino / "index.html").read_bytes() == testigo
+
+
+@pytest.mark.parametrize(
+    "base",
+    [
+        "//evil.example/portafolio",  # empieza por barra y **es un host**: referencia de red
+        "/portafolio?v=2",
+        "/portafolio#inicio",
+        "/portafolio/../otro",
+        "/porta folio",
+    ],
+)
+def test_un_base_que_no_es_un_prefijo_se_rechaza(tmp_path, base):
+    """«Empieza por `/`» no basta para ser una ruta.
+
+    `//evil.example/x` empieza por barra y el navegador la resuelve **contra otro host**: un
+    sitio que promete no cargar recursos de terceros los cargaría todos, y sin salir de la
+    comprobación que lo daba por bueno.
+    """
+
+    assert construir(FIXTURES, tmp_path / f"salida-{abs(hash(base))}", base) == 1
+
+
+def test_el_esquema_en_mayusculas_se_acepta(tmp_path):
+    """Rechazar `HTTPS://…` pidiendo «una URL absoluta» es pedir lo que ya se escribió."""
+
+    destino = tmp_path / "mayusculas"
+    assert construir(FIXTURES, destino, "HTTPS://Shatior.github.io/portafolio") == 0
+    assert '<link rel="canonical" href="https://Shatior.github.io/portafolio/">' in (destino / "index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 # --- Móvil ----------------------------------------------------------------------------
