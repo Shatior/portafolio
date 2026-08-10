@@ -13,7 +13,12 @@ que es la peor forma de envejecer: sigue pareciendo una medición.
 from __future__ import annotations
 
 REPO = "https://github.com/Shatior/threat-intel-pipeline"
-CORREO = "contacto@vigiabref.com"
+
+#: **No hay dirección de contacto, y su ausencia es una decisión.** El pie enlazaba a
+#: `contacto@vigiabref.com`, un buzón de un dominio descartado que nunca recibió nada. En un
+#: sitio cuyo lema es «Aquí puedes comprobarlo», una dirección que no responde es la afirmación
+#: más fácil de desmentir que puede llevar: basta escribir. Se retira hasta que haya un buzón
+#: que conteste; entonces vuelve aquí y al pie de `render.py`.
 
 NOMBRE = "Miguel Ángel Sabater Requena"
 ROL = "Consultor en Ciberinteligencia"
@@ -129,7 +134,12 @@ CIFRAS_PROYECTO = [
     ("2 · 1 · 0", "fuentes públicas · informe diario · intervenciones manuales"),
 ]
 
+#: **La única afirmación comprobable del sitio, y por eso se escribe con cuidado.** Decía «las
+#: tipografías se sirven desde vigiabref.com», que nombraba un dominio descartado; y antes de
+#: eso la maqueta lo decía mientras cargaba Inter desde Google Fonts, que era peor. Ahora dice
+#: lo que se puede comprobar sin saber en qué host está el sitio: que la tipografía viaja con
+#: él. `tests/test_sitio.py` lo ejecuta.
 PIE = (
     "Este sitio no usa analítica, formularios ni recursos de terceros; las tipografías se sirven "
-    "desde vigiabref.com y los indicadores se publican defanged."
+    "desde el propio sitio y los indicadores se publican defanged."
 )

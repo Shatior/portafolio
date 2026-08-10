@@ -1,7 +1,7 @@
 [project]
 name = "portafolio"
 version = "0.1.0"
-description = "Generador del sitio estático de vigiabref.com"
+description = "Generador del sitio estático del portafolio"
 requires-python = ">=3.11"
 dependencies = []
 

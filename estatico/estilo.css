@@ -1,8 +1,8 @@
-/* vigiabref.com — hoja única.
+/* El portafolio — hoja única.
  *
- * Sin CDN, sin marco, sin analítica. La tipografía se sirve desde este mismo dominio: la
- * maqueta cargaba Inter desde Google Fonts, lo que convertía en falsa la única línea del pie
- * que hace una promesa comprobable.
+ * Sin CDN, sin marco, sin analítica. La tipografía viaja con el sitio y se cita relativa a esta
+ * hoja, de modo que resuelve sirva donde sirva: la maqueta cargaba Inter desde Google Fonts, lo
+ * que convertía en falsa la única línea del pie que hace una promesa comprobable.
  *
  * El orden del fichero es: variables, base, tipografía, componentes, y al final el bloque de
  * pantalla estrecha, que es donde está el trabajo de verdad —el archivo de informes y las

@@ -32,6 +32,19 @@ def esc(valor: object) -> str:
 
 
 def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico: str, base: Base) -> str:
+    """El andamiaje de toda página.
+
+    Dos decisiones que no se ven en la plantilla, y que van aquí y no en un comentario HTML
+    porque **un comentario HTML se publica**:
+
+    - **La marca del encabezado es el nombre, no el dominio.** Decía `vigiabref.com`; un sitio
+      rotulado con su dirección hay que reetiquetarlo cada vez que se muda, y este ya se ha
+      mudado. El enlace sí sigue al prefijo.
+    - **El pie no ofrece dirección de contacto.** La que había era de un dominio descartado y
+      nunca recibió nada; el motivo largo está en `contenido.CORREO`. El enlace al repositorio se
+      queda porque no es un canal de contacto: es la invitación a comprobar.
+    """
+
     nav = [
         ("Portada", "/", "portada"),
         ("Proyecto 01", "/proyecto/", "proyecto"),
@@ -61,9 +74,7 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
 <body>
 <a class="saltar" href="#principal">Saltar al contenido</a>
 <header class="barra">
-  <!-- La marca dice `vigiabref.com` aunque la copia provisional se sirva en otro host: es el
-       nombre del sitio, no su dirección. El enlace sí sigue al prefijo. -->
-  <a class="marca" href="{esc(base.ruta("/"))}">vigiabref.com</a>
+  <a class="marca" href="{esc(base.ruta("/"))}">{esc(c.NOMBRE)}</a>
   <nav class="nav" aria-label="Secciones">{enlaces}</nav>
 </header>
 <main id="principal">
@@ -71,7 +82,6 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
 </main>
 <footer class="pie">
   <div class="pie-enlaces">
-    <a href="mailto:{esc(c.CORREO)}">{esc(c.CORREO)}</a>
     <a href="{esc(c.REPO)}" rel="noopener">GitHub</a>
   </div>
   <p class="pie-nota">{esc(c.PIE)}</p>

@@ -1,7 +1,7 @@
 """El sitio construido, contrastado contra lo que su propio pie promete.
 
 El pie dice: «Este sitio no usa analítica, formularios ni recursos de terceros; las tipografías
-se sirven desde vigiabref.com». Es la única afirmación comprobable del sitio, y la maqueta la
+se sirven desde el propio sitio». Es la única afirmación comprobable del sitio, y la maqueta la
 incumplía —cargaba Inter desde `fonts.googleapis.com` mientras el pie decía lo contrario—.
 
 Una promesa que solo puede cumplirse por atención se rompe el día que alguien añade un icono
@@ -20,16 +20,31 @@ from construir import construir
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
+#: La URL bajo la que se publica hoy el sitio. **Es la misma que pasa `desplegar.yml`**, y la
+#: batería entera se ejercita contra ella: durante la etapa anterior los tests sustantivos
+#: corrían sobre una construcción en raíz que no era la que se publicaba, y esa asimetría fue un
+#: hallazgo de la pasada 2.
+BASE_PUBLICACION = "https://shatior.github.io/portafolio"
+PREFIJO = "/portafolio"
+
+#: Un origen cualquiera servido **en raíz**, para ejercitar el camino sin prefijo. No es un
+#: dominio del proyecto ni pretende serlo: el sitio ya no tiene uno, y escribir aquí un nombre
+#: plausible volvería a plantar una constante con cara de dirección real.
+BASE_EN_RAIZ = "https://ejemplo.test"
+
 #: Los únicos destinos externos admitidos, y solo como enlaces que el lector pulsa: el
-#: repositorio del pipeline y el propio dominio. Nada que el navegador **cargue** solo.
-DESTINOS_ADMITIDOS = ("https://github.com/Shatior/", "https://vigiabref.com")
+#: repositorio del pipeline y el propio origen del sitio, del que salen canónica y `og:url`.
+#: Nada que el navegador **cargue** solo.
+DESTINOS_ADMITIDOS = ("https://github.com/Shatior/", "https://shatior.github.io/")
 
 
 @pytest.fixture(scope="module")
 def sitio(tmp_path_factory) -> Path:
+    """El sitio **tal como se publica**: bajo su prefijo, con la misma `--base` del despliegue."""
+
     destino = tmp_path_factory.mktemp("publico")
     shutil.rmtree(destino)
-    assert construir(FIXTURES, destino) == 0
+    assert construir(FIXTURES, destino, BASE_PUBLICACION) == 0
     return destino
 
 
@@ -210,7 +225,7 @@ def test_una_magnitud_ausente_se_publica_como_guion_y_no_como_cero(sitio, tmp_pa
     shutil.copy(origen, solo_sin_familias / "2026-07-31.md")
 
     destino = tmp_path / "publico"
-    assert construir(solo_sin_familias.parent, destino) == 0
+    assert construir(solo_sin_familias.parent, destino, BASE_PUBLICACION) == 0
 
     portada = (destino / "index.html").read_text(encoding="utf-8")
     assert "—" in portada
@@ -224,30 +239,18 @@ def test_sin_informes_la_construccion_falla(tmp_path):
     vacio = tmp_path / "reports"
     vacio.mkdir()
 
-    assert construir(vacio, tmp_path / "publico") == 1
+    assert construir(vacio, tmp_path / "publico", BASE_PUBLICACION) == 1
     assert not (tmp_path / "publico").exists()
 
 
 def test_sin_directorio_de_informes_la_construccion_falla(tmp_path):
-    assert construir(tmp_path / "no-existe", tmp_path / "publico") == 1
+    assert construir(tmp_path / "no-existe", tmp_path / "publico", BASE_PUBLICACION) == 1
 
 
-# --- Servido bajo un prefijo ----------------------------------------------------------
-
-#: El despliegue provisional, mientras `vigiabref.com` no resuelva.
-BASE_PROVISIONAL = "https://shatior.github.io/portafolio"
-PREFIJO = "/portafolio"
+# --- Dónde se sirve el sitio ----------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
-def sitio_con_prefijo(tmp_path_factory) -> Path:
-    destino = tmp_path_factory.mktemp("bajo-prefijo")
-    shutil.rmtree(destino)
-    assert construir(FIXTURES, destino, BASE_PROVISIONAL) == 0
-    return destino
-
-
-def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio_con_prefijo):
+def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio):
     """**El defecto que rompe el sitio y no se ve hasta desplegarlo.**
 
     Servido en `shatior.github.io/portafolio/`, un `href="/estatico/estilo.css"` pide el fichero
@@ -264,7 +267,7 @@ def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio_con_prefijo):
     y el resto de atributos por los que un navegador pide un fichero.
     """
 
-    for pagina in _paginas(sitio_con_prefijo):
+    for pagina in _paginas(sitio):
         html = pagina.read_text(encoding="utf-8")
         rutas = re.findall(r'(?:href|src|srcset|poster|action|data|content)="([^"]+)"', html)
         # `url(...)` en un atributo `style`, que no es un atributo de ruta y carga igual.
@@ -276,7 +279,7 @@ def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio_con_prefijo):
         assert not a_la_raiz, f"{pagina.name} apunta a la raíz del host: {a_la_raiz}"
 
 
-def test_el_css_no_pide_la_tipografia_a_la_raiz(sitio_con_prefijo):
+def test_el_css_no_pide_la_tipografia_a_la_raiz(sitio):
     """La hoja se copia tal cual, de modo que su `url()` **no** puede ser absoluta.
 
     Es la ruta que ningún prefijo reescribe: si fuera `/estatico/fuentes/…`, el sitio bajo
@@ -284,89 +287,123 @@ def test_el_css_no_pide_la_tipografia_a_la_raiz(sitio_con_prefijo):
     más fácil de que el fallo pase por decisión de diseño.
     """
 
-    css = (sitio_con_prefijo / "estatico" / "estilo.css").read_text(encoding="utf-8")
+    css = (sitio / "estatico" / "estilo.css").read_text(encoding="utf-8")
 
     for url in re.findall(r'url\(["\']?([^"\')]+)', css):
         assert not url.startswith("/"), f"el CSS pide {url} a la raíz del host"
 
 
-def test_las_canonicas_y_el_sitemap_declaran_donde_se_sirve_la_copia(sitio_con_prefijo):
+def test_las_canonicas_y_el_sitemap_declaran_donde_se_sirve_la_copia(sitio):
     """Una canónica es una afirmación sobre cuál es la versión buena de esta página.
 
     Publicar la copia provisional declarando canónicas en `vigiabref.com` señalaría como
     versión buena una URL que hoy no resuelve.
     """
 
-    portada = (sitio_con_prefijo / "index.html").read_text(encoding="utf-8")
-    assert f'<link rel="canonical" href="{BASE_PROVISIONAL}/">' in portada
-    assert f'content="{BASE_PROVISIONAL}/"' in portada
+    portada = (sitio / "index.html").read_text(encoding="utf-8")
+    assert f'<link rel="canonical" href="{BASE_PUBLICACION}/">' in portada
+    assert f'content="{BASE_PUBLICACION}/"' in portada
 
-    sitemap = (sitio_con_prefijo / "sitemap.xml").read_text(encoding="utf-8")
-    assert f"<loc>{BASE_PROVISIONAL}/proyecto/</loc>" in sitemap
+    sitemap = (sitio / "sitemap.xml").read_text(encoding="utf-8")
+    assert f"<loc>{BASE_PUBLICACION}/proyecto/</loc>" in sitemap
     assert "vigiabref.com" not in sitemap
 
-    robots = (sitio_con_prefijo / "robots.txt").read_text(encoding="utf-8")
-    assert f"Sitemap: {BASE_PROVISIONAL}/sitemap.xml" in robots
+    robots = (sitio / "robots.txt").read_text(encoding="utf-8")
+    assert f"Sitemap: {BASE_PUBLICACION}/sitemap.xml" in robots
 
 
-def test_la_copia_provisional_no_reclama_el_dominio_propio(sitio_con_prefijo, sitio):
-    """**El bloqueante de la pasada 2.** Pages lee el CNAME como *el dominio de este
-    repositorio* y redirige la URL `github.io` hacia él. Publicando la copia provisional con un
-    CNAME que nombra un dominio que hoy no resuelve, el sitio no queda feo: queda inalcanzable,
-    y el prefijo que existe para hacerlo alcanzable no sirve de nada.
+def test_no_se_escribe_cname_en_ninguna_construccion(sitio):
+    """**El sitio ya no reclama ningún dominio, y su ausencia no se ve mirando la salida.**
 
-    La versión anterior de este test fijaba exactamente lo contrario —que el CNAME estuviera—,
-    de modo que blindaba el defecto en lugar de vigilarlo.
+    El `CNAME` es lo que reclama un dominio ante GitHub Pages: Pages lo lee como *el dominio de
+    este repositorio* y redirige la URL `github.io` hacia él. Sin dominio propio, escribirlo solo
+    puede hacer daño — dejaría inalcanzable la única URL que hoy funciona.
 
-    El dominio **no se toca**: construido sin `--base`, el CNAME se escribe igual que siempre, y
-    eso se comprueba aquí al lado para que suprimirlo de más también muera.
+    Este test fijaba antes justo lo contrario: que el `CNAME` estuviera. Fue el bloqueante de la
+    pasada 2, y es el motivo de que ahora vigile la ausencia. El día que haya dominio, romperá —
+    y el procedimiento para reponerlo está escrito en `construir.py`.
     """
 
-    assert not (sitio_con_prefijo / "CNAME").exists(), (
-        "la copia provisional reclama el dominio propio: Pages redirigiría la URL que sí "
-        "funciona hacia una que no resuelve"
+    assert not (sitio / "CNAME").exists(), (
+        "el sitio escribe un CNAME sin tener dominio: Pages redirigiría la URL que sí funciona "
+        "hacia una que no resuelve"
     )
-    assert (sitio / "CNAME").read_text(encoding="utf-8").strip() == "vigiabref.com"
 
 
-def test_el_despliegue_pasa_el_prefijo_con_el_que_se_sirve(sitio_con_prefijo):
+def test_el_despliegue_pasa_la_url_con_la_que_se_sirve(sitio):
     """El workflow es la única pieza que decide **dónde** se publica, y no la cubría nada.
 
-    Retirar `--base` de `desplegar.yml` dejaba los 43 tests en verde y publicaba un sitio con
-    todas las rutas apuntando a la raíz de `shatior.github.io`. Este test lo ata al valor con el
-    que se construye la copia provisional: el día que `vigiabref.com` resuelva, romperá — y esa
-    es su función, obligar a retirar las dos cosas a la vez y no solo una.
+    Retirar `--base` de `desplegar.yml` dejaba la batería en verde y publicaba un sitio con todas
+    las rutas apuntando a la raíz del host. Ahora `--base` es obligatorio, de modo que retirarlo
+    rompe el despliegue en vez de degradarlo; este test ata además **el valor**, que es lo que
+    ningún argumento obligatorio puede comprobar por sí solo.
+
+    El día que se compre un dominio, romperá. Esa es su función: obligar a que la URL de
+    publicación y la batería se muevan juntas.
     """
 
     workflow = (Path(__file__).parent.parent / ".github/workflows/desplegar.yml").read_text(encoding="utf-8")
 
-    assert f"--base {BASE_PROVISIONAL}" in workflow, (
-        "el despliegue no pasa `--base`: publicaría el sitio con las rutas apuntando a la raíz "
-        "del host. Si el dominio propio ya resuelve, retira también este test."
+    assert f"--base {BASE_PUBLICACION}" in workflow, (
+        "el despliegue no publica bajo la URL con la que se prueba el sitio. Si ha cambiado "
+        "—dominio nuevo, otro prefijo—, actualiza también `BASE_PUBLICACION`."
     )
 
 
-def test_el_base_vacio_y_el_por_defecto_producen_el_mismo_sitio(sitio, tmp_path):
-    """Pasar `--base ""` y no pasarlo tienen que ser **el mismo árbol, byte a byte**.
+def test_sin_base_la_construccion_falla(tmp_path):
+    """**`--base` no tiene valor por defecto, y es la decisión que sustituye a `dominio.txt`.**
 
-    **Lo que este test NO comprueba, y la revisión tuvo razón en señalarlo.** Su nombre anterior
-    —«idéntico al de siempre»— prometía una comparación contra el sitio *anterior al cambio*, y
-    lo que hace es comparar la rama consigo misma: detecta que el prefijo se cuele en el camino
-    por defecto —una barra de más, un origen recompuesto—, y **nada más**.
-
-    Y la promesa mayor era falsa: contra `main` sí hay una diferencia, en `estatico/estilo.css`,
-    porque la tipografía pasó a ser relativa a la hoja. Es intencionada y es la única.
+    Un `--base` opcional se olvida en la línea de órdenes y produce un sitio que se construye en
+    verde declarando canónicas hacia otro sitio. Sin valor por defecto, olvidarlo no compila.
     """
 
-    destino = tmp_path / "sin-base-explicita"
-    assert construir(FIXTURES, destino, "") == 0
+    assert construir(FIXTURES, tmp_path / "publico", "") == 1
+    assert not (tmp_path / "publico").exists()
 
-    por_defecto = {p.relative_to(sitio): p.read_bytes() for p in sitio.rglob("*") if p.is_file()}
-    explicito = {p.relative_to(destino): p.read_bytes() for p in destino.rglob("*") if p.is_file()}
 
-    assert por_defecto.keys() == explicito.keys()
-    distintos = [str(r) for r in por_defecto if por_defecto[r] != explicito[r]]
-    assert not distintos, f"`--base` vacío cambia el sitio: {distintos}"
+def test_servido_en_raiz_las_rutas_internas_no_llevan_prefijo(tmp_path):
+    """El camino sin prefijo, que es el que se usará el día que haya dominio propio.
+
+    Se construye contra un origen servido en raíz y se comprueba que ninguna ruta interna arrastra
+    un prefijo: el sitio tiene que encogerse solo, sin más cambio que el `--base`.
+    """
+
+    destino = tmp_path / "en-raiz"
+    assert construir(FIXTURES, destino, BASE_EN_RAIZ) == 0
+
+    portada = (destino / "index.html").read_text(encoding="utf-8")
+    assert 'href="/estatico/estilo.css"' in portada
+    assert 'href="/informes/"' in portada
+    assert f'<link rel="canonical" href="{BASE_EN_RAIZ}/">' in portada
+
+    sitemap = (destino / "sitemap.xml").read_text(encoding="utf-8")
+    assert f"<loc>{BASE_EN_RAIZ}/proyecto/</loc>" in sitemap
+
+
+def test_el_dominio_descartado_no_sobrevive_en_ninguna_pagina(sitio):
+    """`vigiabref.com` se descartó: no puede quedar en la canónica, ni en el pie, ni en la marca.
+
+    Vigila el sitio **generado**, que es donde importa: una constante olvidada en el código se ve
+    leyendo, pero una que solo aparece al renderizar no.
+    """
+
+    for pagina in _paginas(sitio):
+        assert "vigiabref" not in pagina.read_text(encoding="utf-8"), f"{pagina.name} nombra el dominio descartado"
+
+    for fichero in ("sitemap.xml", "robots.txt"):
+        assert "vigiabref" not in (sitio / fichero).read_text(encoding="utf-8")
+
+
+def test_el_pie_no_ofrece_un_buzon_que_no_recibe(sitio):
+    """La dirección de contacto era de un dominio descartado y nunca recibió nada.
+
+    En un sitio cuyo lema es «Aquí puedes comprobarlo», una dirección que no responde es la
+    afirmación más fácil de desmentir que puede llevar: basta escribir.
+    """
+
+    for pagina in _paginas(sitio):
+        html = pagina.read_text(encoding="utf-8")
+        assert "mailto:" not in html, f"{pagina.name} ofrece un correo"
 
 
 def test_un_prefijo_relativo_se_rechaza_y_no_borra_el_sitio_anterior(tmp_path):
@@ -379,7 +416,7 @@ def test_un_prefijo_relativo_se_rechaza_y_no_borra_el_sitio_anterior(tmp_path):
     """
 
     destino = tmp_path / "publico"
-    assert construir(FIXTURES, destino) == 0
+    assert construir(FIXTURES, destino, BASE_PUBLICACION) == 0
     testigo = (destino / "index.html").read_bytes()
 
     assert construir(FIXTURES, destino, "portafolio") == 1

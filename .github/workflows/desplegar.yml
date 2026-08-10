@@ -1,4 +1,4 @@
-# Construye el sitio y lo publica en GitHub Pages sobre vigiabref.com.
+# Construye el sitio y lo publica en GitHub Pages.
 #
 # **Se dispara por tres caminos, y el que importa es el segundo.** El sitio no tiene contenido
 # propio que cambie a diario: lo que cambia es el informe, y ese vive en otro repositorio. Sin
@@ -60,10 +60,13 @@ jobs:
         # Falla con código distinto de cero si no hay informes, y entonces **no se despliega**.
         # Publicar el sitio con las cifras en blanco sería indistinguible de publicarlo al día.
         #
-        # **`--base` es provisional.** Mientras `vigiabref.com` no resuelva, Pages sirve el sitio
-        # bajo `/portafolio/`, y sin prefijo todas las rutas internas pedirían sus ficheros a la
-        # raíz de `shatior.github.io`. El día que el dominio funcione se retira esta línea y el
-        # sitio vuelve a construirse desde la raíz, sin más cambios.
+        # **`--base` es obligatorio y aquí está la única copia de la URL de publicación.** El
+        # sitio no tiene dominio propio: se sirve bajo `/portafolio/`, y sin prefijo todas las
+        # rutas internas pedirían sus ficheros a la raíz de `shatior.github.io`.
+        #
+        # El día que se compre un dominio, esta línea pasa a `--base https://elnuevodominio.com`
+        # —sin prefijo, porque el sitio vivirá en una raíz— y hay que reponer el `CNAME` en
+        # `construir.py`, donde está escrito el procedimiento completo.
         run: |
           python construir.py \
             --informes pipeline/reports \

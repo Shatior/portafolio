@@ -1,7 +1,14 @@
 # portafolio
 
-Generador del sitio de [vigiabref.com](https://vigiabref.com). Estático, sin marco, sin
+Generador del sitio del portafolio, publicado hoy en
+[`shatior.github.io/portafolio`](https://shatior.github.io/portafolio/). Estático, sin marco, sin
 dependencias en tiempo de ejecución.
+
+**No hay dominio propio, y el sitio no lo lleva escrito en ninguna parte.** El anterior
+—`vigiabref.com`— se descartó, y en vez de sustituirlo por otro nombre se retiró la constante: la
+URL con la que el sitio se declara llega por `--base` en cada construcción. Una constante que
+afirma dónde vive el sitio envejece igual que una cifra fijada a mano, y con la misma cara de
+dato.
 
 ## Qué hace
 
@@ -25,17 +32,23 @@ hacer.
 ## Construir
 
 ```bash
-python construir.py --informes ../threat-intel-pipeline/reports --salida publico
+python construir.py --informes ../threat-intel-pipeline/reports --salida publico \
+    --base http://localhost:8000
 python -m http.server -d publico 8000
 pytest
 ```
 
-**`--base`, para cuando el sitio no se sirve en la raíz de su dominio.** Vacío por defecto, que
-es lo de siempre. Admite una URL completa —`https://shatior.github.io/portafolio`— o solo el
-prefijo —`/portafolio`—, y afecta a todas las rutas internas: navegación, hoja de estilo,
-tipografía, canónicas, `og:url`, sitemap y `robots.txt`. **El `CNAME` no**: no es una ruta del
-sitio, es el dominio que el sitio reclama como suyo, y no cambia porque una copia provisional se
-sirva en otro sitio.
+**`--base` es obligatorio y es una URL absoluta.** De ahí salen las rutas internas —navegación,
+hoja de estilo, tipografía— y también lo que el sitio declara ser: canónica, `og:url`, sitemap y
+`robots.txt`. Como se publica hoy: `--base https://shatior.github.io/portafolio`.
+
+Que no tenga valor por defecto es la decisión que sustituye al antiguo `dominio.txt`. Un `--base`
+opcional se olvida en la línea de órdenes y produce un sitio que **se construye en verde**
+declarando canónicas hacia otro sitio; sin valor por defecto, olvidarlo no compila.
+
+**No se escribe ningún `CNAME`.** Es lo que reclama un dominio ante GitHub Pages, y sin dominio
+solo puede hacer daño: dejaría inalcanzable la única URL que hoy funciona. El procedimiento para
+reponerlo está escrito en `construir.py`, junto al sitio donde iría.
 
 **Sin informes no hay sitio:** si el directorio no existe o no trae ningún fichero fechado, la
 construcción falla con código distinto de cero y no se despliega nada. Un sitio en verde con las
@@ -55,7 +68,7 @@ cifras vacías es indistinguible de uno al día.
 ## Sin recursos de terceros
 
 El pie del sitio dice que no hay analítica, formularios ni recursos de terceros, y que las
-tipografías se sirven desde el propio dominio. Es la única afirmación comprobable del sitio, y
+tipografías se sirven desde el propio sitio. Es la única afirmación comprobable del sitio, y
 **`tests/test_sitio.py` la comprueba**: ninguna página carga nada externo, ninguna lleva
 JavaScript, y la Inter viaja en `estatico/fuentes/` con su licencia SIL OFL.
 
@@ -94,8 +107,9 @@ Las dos cosas que peor sobreviven en pantalla estrecha se resuelven primero:
 
 ## Despliegue
 
-GitHub Pages sobre `vigiabref.com`, con el dominio en `dominio.txt` y el `CNAME` escrito en la
-raíz del sitio por el propio generador.
+GitHub Pages, sin dominio propio: el sitio se publica en
+[`shatior.github.io/portafolio/`](https://shatior.github.io/portafolio/), bajo un subdirectorio.
+El generador no escribe `CNAME` y no existe `dominio.txt`.
 
 `.github/workflows/desplegar.yml` se dispara por tres caminos, y el que importa es el segundo:
 
@@ -123,69 +137,52 @@ puede borrarse. Si el pipeline volviera a hacerse privado, habría que reponerlo
 publica igual y el sitio se queda con las cifras anteriores hasta el siguiente `push`. Se
 prefiere eso a enrojecer una ejecución que sí produjo su producto.
 
-### Requisito de lanzamiento pendiente: el DNS de `vigiabref.com` no es nuestro
-
-El dominio está **delegado a una cuenta de Vercel a la que no se tiene acceso**. Hoy
-`vigiabref.com` no resuelve a GitHub Pages, y mientras siga así **el sitio no puede servirse
-ahí**: el `CNAME` que escribe el generador es correcto y no sirve de nada, porque el `CNAME` del
-repositorio solo dice a Pages qué dominio aceptar — quien decide adónde apunta el nombre son los
-registros DNS, y esos los controla la otra cuenta.
-
-Es la condición que queda, y no se cierra con código. Las salidas son tres, por orden de coste:
-
-1. **Recuperar el acceso a la cuenta de Vercel** y repuntar los registros a GitHub Pages.
-2. **Cambiar los servidores de nombres** en el registrador del dominio, que es quien manda sobre
-   la delegación, y rehacer los registros.
-3. **Desplegar en Vercel** desde esa misma cuenta, si se recupera: el sitio generado es el mismo
-   directorio estático y no cambia nada del código.
-
-Se declara aquí en vez de descubrirse el día del lanzamiento, que es lo que este proyecto exige
-hacer con una laguna.
-
-#### Mientras tanto, el sitio se sirve bajo un prefijo
+### Servido bajo un subdirectorio, y qué cambia el día que haya dominio
 
 Pages está activado con origen GitHub Actions —**lo reporta el propietario del repositorio el
 2026-08-10; no se ha comprobado desde la sesión que escribe esto, cuyo acceso de red no alcanza
-`shatior.github.io`**— de modo que el sitio se publica en
-[`shatior.github.io/portafolio/`](https://shatior.github.io/portafolio/): bajo un subdirectorio,
-no en la raíz de un dominio.
+`shatior.github.io`**—, de modo que el sitio se publica bajo un subdirectorio y no en la raíz de
+un dominio.
 
-Eso no es un detalle de URL: el sitio se escribió con rutas internas absolutas —`/informes/`,
-`/estatico/estilo.css`—, que son lo correcto en la raíz de `vigiabref.com` y **lo único
-correcto**, porque hay páginas a dos niveles de profundidad y una ruta relativa cambiaría de
-significado según quién la escriba. Bajo un subdirectorio esa misma corrección pide cada fichero
-a la raíz de `shatior.github.io`, donde no hay nada: el sitio saldría sin hoja de estilo, sin
-tipografía y con toda la navegación rota. **Y la construcción terminaría en verde**, porque el
-árbol de salida es idéntico — el fallo solo existe una vez servido.
+Eso no es un detalle de URL. El sitio usa rutas internas absolutas —`/informes/`,
+`/estatico/estilo.css`—, que son lo correcto en la raíz de un dominio y **lo único correcto**:
+hay páginas a dos niveles de profundidad y una ruta relativa cambiaría de significado según quién
+la escriba. Bajo un subdirectorio esa misma corrección pide cada fichero a la raíz de
+`shatior.github.io`, donde no hay nada: el sitio saldría sin hoja de estilo, sin tipografía y con
+toda la navegación rota. **Y la construcción terminaría en verde**, porque el árbol de salida es
+idéntico — el fallo solo existe una vez servido.
 
-Lo resuelve `--base`, que el workflow de despliegue pasa como
-`https://shatior.github.io/portafolio`. Lo vigila
-`test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo`, que construye con prefijo y comprueba
-**todos** los `href` y `src` de todas las páginas, no una lista de los que hoy existen: el modo
-de fallo es que alguien añada mañana la ruta número catorce.
+Lo resuelve `--base`, que el despliegue pasa como `https://shatior.github.io/portafolio`. Lo
+vigila `test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo`, que comprueba **todas** las
+rutas de todas las páginas —incluidos los `url()` en atributos `style`—, no una lista de las que
+hoy existen: el modo de fallo es que alguien añada mañana la ruta número catorce.
 
-**La copia provisional no lleva `CNAME`, y eso lo encontró la revisión.** Pages no lee ese
-fichero como un rótulo sino como *el dominio de este repositorio*, y redirige la URL `github.io`
-hacia él: publicar la copia reclamando un dominio que hoy no resuelve la dejaría inalcanzable, y
-el prefijo existe justo para lo contrario. `dominio.txt` **no se toca** y la construcción sin
-`--base` escribe el `CNAME` igual que siempre; lo que se omite es reclamar el dominio desde una
-copia que no vive en él.
+#### El día que se compre un dominio
 
-**El prefijo se retira el día que `vigiabref.com` resuelva.** Es una línea del workflow, y sin
-ella el sitio vuelve a construirse desde la raíz, con su `CNAME`. Dos avisos sobre el alcance de
-los tests, porque prometer de más es el defecto que este proyecto persigue:
+Tres pasos, y el orden importa:
 
-- `test_el_base_vacio_y_el_por_defecto_producen_el_mismo_sitio` compara la rama **consigo
-  misma**. Contra el sitio anterior al cambio sí hay una diferencia, y es intencionada y única:
-  la tipografía pasó a citarse relativa a la hoja en `estatico/estilo.css`.
-- La batería sustantiva —sin recursos de terceros, sin JavaScript, destinos externos, móvil—
-  se ejercita sobre la construcción **en raíz**, que durante el provisional es precisamente la
-  que nadie publica. Bajo prefijo solo se comprueban las rutas, las canónicas y el `CNAME`.
+1. Apuntar los registros DNS del dominio a GitHub Pages y declararlo en `Settings → Pages`.
+2. Reponer la escritura del `CNAME` en `construir.py`, donde está el procedimiento completo
+   escrito junto al sitio exacto donde va.
+3. Cambiar `--base` en `.github/workflows/desplegar.yml` a `https://elnuevodominio.com`, **sin
+   prefijo**: el sitio pasa a vivir en una raíz y las rutas internas se acortan solas.
+
+`test_el_despliegue_pasa_la_url_con_la_que_se_sirve` y
+`test_no_se_escribe_cname_en_ninguna_construccion` romperán al hacerlo. Es su función: obligar a
+que la URL de publicación, el `CNAME` y la batería se muevan juntos, en vez de descubrir en
+producción que solo se movió uno.
+
+#### Lo que la batería no cubre
+
+La batería sustantiva ahora sí se ejercita sobre la construcción que se publica —bajo prefijo—;
+durante la etapa anterior corría sobre una construcción en raíz que nadie publicaba, y esa
+asimetría fue un hallazgo de la revisión. Lo que sigue sin cubrirse es el **renderizado real en
+un navegador**: la comprobación es estática sobre el HTML y el CSS generados.
 
 ### GitHub Pages y la visibilidad del repositorio
 
 GitHub Pages sirve sitios desde repositorios privados **solo en planes de pago**. Con cuenta
-gratuita, este repositorio tiene que ser público para publicar en `vigiabref.com` — lo cual es
-razonable para un portafolio, pero es una decisión, no un detalle. La alternativa es Vercel, que
+gratuita, este repositorio tiene que ser público para publicar el sitio — lo cual es razonable
+para un portafolio, pero es una decisión, no un detalle. La alternativa es Vercel, que
 despliega desde repositorios privados; el sitio generado es el mismo directorio estático y no
 cambia nada del código.

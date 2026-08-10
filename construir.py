@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Construye el sitio estático de vigiabref.com.
+"""Construye el sitio estático del portafolio.
 
-    python construir.py --informes ../threat-intel-pipeline/reports --salida publico
+    python construir.py --informes ../threat-intel-pipeline/reports --salida publico \\
+        --base https://shatior.github.io/portafolio
+
+**El sitio no tiene dominio propio**, de modo que `--base` es obligatorio: de ahí salen las
+rutas internas, la canónica, el `og:url` y el sitemap. No hay constante que diga dónde vive el
+sitio, porque la había —`vigiabref.com`— y envejeció.
 
 **El sitio no puede construirse sin informes, y eso es deliberado.** Si el directorio no existe
 o no trae ni un fichero fechado, la construcción **falla con código distinto de cero** en lugar
@@ -24,7 +29,7 @@ from sitio.rutas import Base, interpretar
 RAIZ = Path(__file__).resolve().parent
 
 
-def construir(dir_informes: Path, destino: Path, base: str = "") -> int:
+def construir(dir_informes: Path, destino: Path, base: str) -> int:
     if not dir_informes.is_dir():
         print(f"error: no existe el directorio de informes: {dir_informes}", file=sys.stderr)
         return 1
@@ -39,11 +44,10 @@ def construir(dir_informes: Path, destino: Path, base: str = "") -> int:
         )
         return 1
 
-    # El dominio y el `--base` se resuelven **antes** de borrar nada: un `--base` mal escrito
-    # tiene que fallar con el sitio anterior todavía en su sitio, no dejar el directorio vacío.
-    dominio = (RAIZ / "dominio.txt").read_text(encoding="utf-8").strip()
+    # El `--base` se resuelve **antes** de borrar nada: uno mal escrito tiene que fallar con el
+    # sitio anterior todavía en su sitio, no dejar el directorio vacío.
     try:
-        donde = interpretar(base, dominio)
+        donde = interpretar(base)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
@@ -73,37 +77,45 @@ def construir(dir_informes: Path, destino: Path, base: str = "") -> int:
 
     shutil.copytree(RAIZ / "estatico", destino / "estatico")
 
-    # GitHub Pages exige el CNAME en la **raíz** del sitio publicado, no dentro de `estatico/`:
-    # ahí lo serviría como un fichero más y el dominio propio no se aplicaría.
+    # **Aquí no se escribe ningún `CNAME`, y hace falta explicarlo porque su ausencia no se ve.**
     #
-    # **Solo se escribe cuando el sitio se publica en su propio dominio**, y esto lo encontró la
-    # revisión. El CNAME no es un rótulo: Pages lo lee como *el dominio de este repositorio* y
-    # redirige la URL `github.io` hacia él. Publicando la copia provisional con un CNAME que
-    # nombra un dominio que **hoy no resuelve**, el sitio no quedaría feo — quedaría inalcanzable,
-    # y el prefijo que existe justo para hacerlo alcanzable no serviría de nada.
+    # El `CNAME` es lo que reclama un dominio propio ante GitHub Pages: Pages lo lee como *el
+    # dominio de este repositorio* y redirige la URL `github.io` hacia él. Sin dominio, escribirlo
+    # solo puede hacer daño — apuntaría a un nombre que no resuelve y dejaría inalcanzable la
+    # única URL que sí funciona.
     #
-    # El dominio en sí no se toca: `dominio.txt` sigue diciendo lo mismo y la construcción sin
-    # `--base` escribe el CNAME igual que siempre. Lo que se omite es reclamar el dominio desde
-    # una copia que no vive en él.
-    if donde.origen == f"https://{dominio}":
-        (destino / "CNAME").write_text(f"{dominio}\n", encoding="utf-8")
+    # **Cómo se reactiva el día que haya dominio**, que son tres pasos y ninguno toca este
+    # comentario:
+    #
+    #   1. Añadir aquí `(destino / "CNAME").write_text("elnuevodominio.com\n", encoding="utf-8")`,
+    #      en la **raíz** del sitio publicado y no dentro de `estatico/`: ahí Pages lo serviría
+    #      como un fichero más y el dominio no se aplicaría.
+    #   2. Apuntar los registros DNS del dominio a Pages y declararlo en `Settings → Pages`.
+    #   3. Cambiar `--base` en `.github/workflows/desplegar.yml` a `https://elnuevodominio.com`,
+    #      **sin prefijo**: el sitio pasa a vivir en una raíz y las rutas internas se acortan
+    #      solas. `test_el_despliegue_pasa_el_prefijo_con_el_que_se_sirve` romperá al hacerlo, y
+    #      esa es su función: obligar a que las dos cosas se muevan juntas.
+    #
+    # No se deja el código escrito y desactivado tras una condición: una rama que nadie ejecuta
+    # no es una funcionalidad lista, es una que nadie ha probado con el aspecto de estarlo.
 
     # Sin JavaScript en el sitio, de modo que no hay nada que rastrear; el `robots.txt` existe
     # para no dejar el 404 que algunos rastreadores registran como error del dominio.
     #
     # Bajo prefijo acaba en `/portafolio/robots.txt`, donde **ningún rastreador lo lee**: el
     # protocolo lo busca en la raíz del host. Se escribe igualmente —es el fichero del sitio, y
-    # el sitio definitivo sí vivirá en una raíz— sabiendo que durante el provisional es inerte.
+    # el sitio definitivo sí vivirá en una raíz— sabiendo que hoy es inerte.
     (destino / "robots.txt").write_text(
         f"User-agent: *\nAllow: /\nSitemap: {donde.url('/sitemap.xml')}\n", encoding="utf-8"
     )
     _sitemap(destino, informes, donde)
 
     print(f"Construido en {destino}: {len(informes)} informes, el más reciente {ultimo.iso}.")
-    if donde.prefijo or donde.origen != f"https://{dominio}":
-        # Se declara al construir porque un sitio con prefijo **no** es servible desde la raíz:
-        # publicar por error en `/` este directorio daría 404 en todas las hojas de estilo.
-        print(f"  servido bajo {donde.url('/')} — provisional, no desde la raíz de {dominio}")
+    # Se declara siempre: el sitio ya no tiene un «sitio natural» contra el que contrastar, de
+    # modo que la única forma de saber con qué URL se ha construido es leerla aquí. Con prefijo,
+    # además, el árbol **no** es servible desde la raíz: publicarlo por error en `/` daría 404 en
+    # todas las hojas de estilo.
+    print(f"  servido en {donde.url('/')}")
     if con_panorama is None:
         print("  ningún informe publica el panorama de familias: la medición destacada no se publica")
     elif con_panorama.iso != ultimo.iso:
@@ -132,7 +144,7 @@ def _sitemap(destino: Path, informes: list, donde: Base) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Construye el sitio estático de vigiabref.com.")
+    parser = argparse.ArgumentParser(description="Construye el sitio estático del portafolio.")
     parser.add_argument(
         "--informes",
         type=Path,
@@ -142,12 +154,13 @@ def main() -> int:
     parser.add_argument("--salida", type=Path, default=RAIZ / "publico", help="Directorio de salida.")
     parser.add_argument(
         "--base",
-        default="",
+        required=True,
         help=(
-            "Dónde se sirve el sitio, cuando no es la raíz de su propio dominio. Vacío por "
-            "defecto —el sitio vive en `https://<dominio.txt>/` y se construye como siempre—. "
-            "Admite una URL completa (`https://shatior.github.io/portafolio`) o solo el prefijo "
-            "(`/portafolio`), que conserva el dominio propio en las canónicas."
+            "URL absoluta bajo la que se sirve el sitio, prefijo incluido: "
+            "`https://shatior.github.io/portafolio` como se publica hoy, o "
+            "`http://localhost:8000` para mirarlo en local. **Obligatorio**: el sitio no tiene "
+            "dominio propio, de modo que no hay de dónde deducirlo, y un valor por defecto se "
+            "olvidaría en la línea de órdenes produciendo canónicas hacia otro sitio."
         ),
     )
     args = parser.parse_args()
