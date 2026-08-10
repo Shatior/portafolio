@@ -23,13 +23,15 @@ indistinguible de «no hubo pasada».
 
 ## Registro
 
-**Filas: 1** (1 con `†`).
+**Filas: 2** (1 con `†`).
 
 | Fecha | PR | Fase | Pasada | Tipo de diff | Duración | Bloq. | Relev. | Menores | Categorías con hallazgo |
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-08-03 | #1 | n/a | 1 | comportamiento + documentación | ~10 min (presupuesto acotado: 10 min / 30 mutaciones; 4 mutaciones ejecutadas) | 2 | 4 | 4 | 1, 2, 3, 4, 5, 9 † |
+| 2026-08-10 | #2 | n/a | 2 | comportamiento + configuración + documentación | ~11 min (presupuesto acotado: 10 min / 30 mutaciones; 14 mutaciones ejecutadas, 11 muertas) | 1 | 3 | 5 | 1, 2, 3, 4, 5, 7, 9, 10 |
 
-Acta: [`docs/revisiones/sitio--pasada-1.md`](revisiones/sitio--pasada-1.md).
+Actas: [`docs/revisiones/sitio--pasada-1.md`](revisiones/sitio--pasada-1.md),
+[`docs/revisiones/sitio--pasada-2.md`](revisiones/sitio--pasada-2.md).
 
 ## Cómo se lee este registro
 
