@@ -1,0 +1,674 @@
+/* vigiabref.com — hoja única.
+ *
+ * Sin CDN, sin marco, sin analítica. La tipografía se sirve desde este mismo dominio: la
+ * maqueta cargaba Inter desde Google Fonts, lo que convertía en falsa la única línea del pie
+ * que hace una promesa comprobable.
+ *
+ * El orden del fichero es: variables, base, tipografía, componentes, y al final el bloque de
+ * pantalla estrecha, que es donde está el trabajo de verdad —el archivo de informes y las
+ * tablas son lo que peor sobrevive por debajo de 700 px—.
+ */
+
+/* --- Tipografía servida desde el propio dominio ---------------------------------------- */
+
+@font-face {
+  font-family: "InterVariable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap; /* el texto se lee con la de sistema mientras llega la nuestra */
+  src: url("/estatico/fuentes/InterVariable.woff2") format("woff2");
+}
+
+:root {
+  --fondo: #161826;
+  --tinta: #e9e9ed;
+  --tinta-media: rgba(233, 233, 237, 0.78);
+  --tinta-tenue: rgba(233, 233, 237, 0.55);
+  --linea: rgba(233, 233, 237, 0.16);
+  --linea-tenue: rgba(233, 233, 237, 0.08);
+  --acento: #d2cefd;
+  --acento-borde: #9184d9;
+  --acento-fondo: rgba(145, 132, 217, 0.16);
+  --tarjeta: #232532;
+  --tarjeta-borde: #3f424d;
+  --borde-apagado: #595d6c;
+  --laguna-fondo: #2b2741;
+  --laguna-borde: #5d5294;
+
+  --gutter: 44.8px;
+  --pila: 22.4px;
+}
+
+/* --- Base ------------------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Sin esto, el ancla de una sección queda debajo de la cabecera pegajosa. */
+  scroll-padding-top: 72px;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: InterVariable, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--acento);
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: #e7e5fe;
+}
+
+::selection {
+  background: rgba(145, 132, 217, 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid var(--acento-borde);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.saltar {
+  position: absolute;
+  left: -9999px;
+}
+.saltar:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--tarjeta);
+  border-radius: 6px;
+}
+
+/* --- Cabecera y navegación ------------------------------------------------------------- */
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16.8px var(--gutter);
+  border-bottom: 1px solid var(--linea);
+  position: sticky;
+  top: 0;
+  background: var(--fondo);
+  z-index: 2;
+}
+
+.marca {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  gap: 5.6px;
+}
+
+.nav a {
+  padding: 5.6px 11.2px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--tinta-tenue);
+  border: 1px solid var(--tarjeta-borde);
+}
+.nav a:hover {
+  border-color: var(--acento-borde);
+}
+.nav a[aria-current="page"] {
+  background: var(--acento-fondo);
+  color: var(--acento);
+  border-color: var(--acento-borde);
+}
+
+/* --- Bloques de página ------------------------------------------------------------------ */
+
+.bloque {
+  padding: 44.8px var(--gutter) var(--pila);
+  max-width: 980px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pila);
+}
+
+.bloque--intro {
+  padding-top: 78.4px;
+  max-width: 920px;
+}
+
+.regla {
+  height: 1px;
+  margin: var(--pila) var(--gutter);
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--linea) 48px,
+    var(--linea) calc(100% - 48px),
+    transparent
+  );
+}
+
+.epigrafe {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acento-borde);
+}
+.epigrafe--tenue {
+  color: var(--tinta-tenue);
+}
+
+.titular {
+  font-size: 42px;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 22ch;
+}
+.subtitular {
+  font-size: 32px;
+  line-height: 1.16;
+  margin: 0;
+  max-width: 24ch;
+}
+.destacado {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.3;
+  color: var(--acento);
+  max-width: 30ch;
+}
+.parrafo {
+  margin: 0;
+  max-width: 66ch;
+  color: var(--tinta-media);
+  text-wrap: pretty;
+}
+.pie-nota {
+  margin: 0;
+  max-width: 80ch;
+  font-size: 13px;
+  color: var(--tinta-tenue);
+  text-wrap: pretty;
+}
+
+/* --- Cifras ----------------------------------------------------------------------------- */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pila);
+  max-width: 640px;
+  margin: 5.6px 0;
+}
+
+.cifra {
+  display: flex;
+  flex-direction: column;
+  gap: 2.8px;
+  padding-left: 11.2px;
+  border-left: 2px solid var(--acento-borde);
+}
+.cifra strong {
+  font-size: 46px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+.cifra span {
+  font-size: 13px;
+  color: var(--tinta-tenue);
+  text-wrap: pretty;
+}
+/* Una cifra que el informe no publica se ve distinta de una que vale cero. */
+.cifra--ausente strong {
+  color: var(--tinta-tenue);
+}
+
+.cifras--tres {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: none;
+}
+.cifras--tres .cifra {
+  border-left: 0;
+  padding-left: 0;
+}
+.cifras--tres strong {
+  font-size: 28px;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11.2px;
+}
+.resumen .dato {
+  padding: 11.2px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--tarjeta-borde);
+}
+.resumen strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+.resumen span {
+  font-size: 11px;
+  color: var(--tinta-tenue);
+  text-wrap: pretty;
+}
+.dato--ausente strong {
+  color: var(--tinta-tenue);
+}
+
+/* --- Tarjetas y lagunas ----------------------------------------------------------------- */
+
+.tarjetas {
+  display: flex;
+  flex-direction: column;
+  gap: 16.8px;
+}
+.tarjeta {
+  padding: 16.8px;
+  border-radius: 8px;
+  background: var(--tarjeta);
+  box-shadow: 0 0 0 1px var(--tarjeta-borde);
+}
+.tarjeta h4 {
+  font-size: 16px;
+  margin: 0 0 5.6px;
+  color: var(--acento);
+}
+.tarjeta p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--tinta-media);
+  max-width: 72ch;
+  text-wrap: pretty;
+}
+
+.rejilla-metricas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11.2px;
+}
+.rejilla-metricas .tarjeta {
+  background: transparent;
+}
+
+.laguna {
+  padding: 16.8px;
+  border-radius: 8px;
+  background: var(--laguna-fondo);
+  box-shadow: 0 0 0 1px var(--laguna-borde);
+}
+.laguna h4 {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acento);
+  margin: 0 0 5.6px;
+}
+.laguna ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
+}
+.laguna li {
+  font-size: 14px;
+  color: rgba(233, 233, 237, 0.85);
+  max-width: 80ch;
+  text-wrap: pretty;
+}
+
+/* --- Botones ---------------------------------------------------------------------------- */
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8.4px;
+  margin-top: 5.6px;
+}
+.boton {
+  display: inline-block;
+  padding: 8.4px 16.8px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--acento);
+  border: 1px solid var(--acento-borde);
+}
+.boton:hover {
+  background: rgba(145, 132, 217, 0.14);
+}
+.boton--secundario {
+  color: var(--tinta-media);
+  border-color: var(--borde-apagado);
+}
+.boton--secundario:hover {
+  border-color: #9397ab;
+  background: transparent;
+}
+.enlace-suelto {
+  align-self: flex-start;
+  color: var(--acento);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.enlace-suelto:hover {
+  text-decoration: underline;
+}
+
+/* --- Informes: archivo + cuerpo ---------------------------------------------------------- */
+
+.informes {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  align-items: start;
+}
+
+.archivo {
+  border-right: 1px solid var(--linea);
+  padding: var(--pila) 16.8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8.4px;
+  position: sticky;
+  top: 57px;
+}
+.archivo > .epigrafe {
+  padding: 0 11.2px;
+}
+.archivo a {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8.4px 11.2px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--tinta-media);
+  border: 1px solid var(--tarjeta-borde);
+}
+.archivo a:hover {
+  border-color: var(--acento-borde);
+}
+.archivo a[aria-current="page"] {
+  background: var(--acento-fondo);
+  color: var(--acento);
+  border-color: var(--acento-borde);
+}
+.archivo .fecha {
+  font-size: 13px;
+  font-weight: 500;
+}
+.archivo .estado {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.informe {
+  padding: var(--pila) 33.6px 44.8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16.8px;
+  max-width: 980px;
+  min-width: 0; /* sin esto, una tabla ancha desborda la rejilla en vez de hacer scroll */
+}
+
+.tabla-titulo {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+.tabla-nota {
+  margin: 0;
+  font-size: 12px;
+  color: var(--tinta-tenue);
+}
+
+.tabla-envoltorio {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 8.4px 11.2px;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+  border-bottom: 1px solid var(--linea);
+  white-space: nowrap;
+}
+td {
+  padding: 8.4px 11.2px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+td.num {
+  font-variant-numeric: tabular-nums;
+}
+td.tenue {
+  color: rgba(233, 233, 237, 0.7);
+}
+.marca-plazo {
+  color: var(--acento);
+}
+
+.vacio {
+  margin: 0;
+  padding: 16.8px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--tarjeta-borde);
+  color: var(--tinta-media);
+  font-size: 14px;
+  max-width: 80ch;
+  text-wrap: pretty;
+}
+
+/* --- Pie -------------------------------------------------------------------------------- */
+
+.pie {
+  padding: var(--pila) var(--gutter) 44.8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
+}
+.pie-enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16.8px;
+  font-size: 13px;
+}
+.pie-enlaces a {
+  text-decoration: none;
+}
+.pie-enlaces a:hover {
+  text-decoration: underline;
+}
+
+/* ========================================================================================
+ * Pantalla estrecha
+ *
+ * Se resuelven primero las dos cosas que peor sobreviven, que son las que el diseño da por
+ * supuestas: el archivo de informes —una columna fija de 216 px que en un móvil se come la
+ * mitad del ancho— y las tablas de cinco columnas, que con `overflow-x` obligan a arrastrar
+ * lateralmente para leer una fila entera.
+ * ====================================================================================== */
+
+@media (max-width: 900px) {
+  :root {
+    --gutter: 20px;
+  }
+
+  .barra {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* El archivo deja de ser una columna y pasa a ser una tira que se desplaza en horizontal.
+   * Es el único elemento del sitio al que se le permite scroll lateral: son fichas cortas y
+   * equivalentes, de modo que ver seis y arrastrar para ver el resto no rompe la lectura,
+   * mientras que apilarlas empujaría el informe una pantalla entera hacia abajo. */
+  .informes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .archivo {
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid var(--linea);
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px var(--gutter);
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .archivo > .epigrafe {
+    display: none; /* el rótulo «Archivo» ocuparía una ficha entera de ancho */
+  }
+  .archivo a {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-height: 44px; /* objetivo táctil */
+    justify-content: center;
+  }
+  .informe {
+    padding: var(--pila) var(--gutter) 44.8px;
+  }
+
+  .resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cifras--tres {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .titular {
+    font-size: 32px;
+  }
+  .subtitular {
+    font-size: 26px;
+  }
+  .destacado {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 700px) {
+  /* Las tablas dejan de ser tablas y pasan a ser fichas apiladas.
+   *
+   * Es la decisión de móvil que más cambia el resultado. Con `overflow-x`, leer la fecha
+   * límite de un CVE exige arrastrar la fila entera y perder de vista el CVE; apilada, cada
+   * entrada se lee de un vistazo. La cabecera desaparece y su texto viaja en `data-columna`,
+   * de modo que **no hay dos fuentes del nombre de la columna**: el generador lo escribe una
+   * vez y el CSS lo pinta.
+   *
+   * La tabla sigue siendo una tabla en el marcado: un lector de pantalla mantiene la relación
+   * celda-cabecera aunque la presentación cambie. */
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  tr {
+    padding: 11.2px;
+    margin-bottom: 8.4px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--tarjeta-borde);
+  }
+  td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 4px 0;
+    border-bottom: 0;
+    text-align: right;
+  }
+  td::before {
+    content: attr(data-columna);
+    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta-tenue);
+    text-align: left;
+  }
+  /* La primera celda es el identificador de la fila: va sola y arriba, como un título. */
+  td:first-child {
+    display: block;
+    text-align: left;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  td:first-child::before {
+    display: none;
+  }
+  .tabla-envoltorio {
+    overflow-x: visible;
+  }
+
+  .cifras {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cifra strong {
+    font-size: 38px;
+  }
+  .rejilla-metricas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .titular {
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
