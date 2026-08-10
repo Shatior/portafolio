@@ -27,8 +27,8 @@ indistinguible de «no hubo pasada».
 
 | Fecha | PR | Fase | Pasada | Tipo de diff | Duración | Bloq. | Relev. | Menores | Categorías con hallazgo |
 |---|---|---|---|---|---|---|---|---|---|
-| 2026-08-03 | #1 | n/a | 1 | comportamiento + documentación | ~10 min (presupuesto acotado: 10 min / 30 mutaciones; 4 mutaciones ejecutadas) | 2 | 4 | 4 | 1, 2, 3, 4, 5, 9 † |
-| 2026-08-10 | #2 | n/a | 2 | comportamiento + configuración + documentación | ~11 min (presupuesto acotado: 10 min / 30 mutaciones; 14 mutaciones ejecutadas, 11 muertas) | 1 | 3 | 5 | 1, 2, 3, 4, 5, 7, 9, 10 |
+| 2026-08-03 | vigiabref#1 | n/a | 1 | comportamiento + documentación | ~10 min (presupuesto acotado: 10 min / 30 mutaciones; 4 mutaciones ejecutadas) | 2 | 4 | 4 | 1, 2, 3, 4, 5, 9 † |
+| 2026-08-10 | Shatior#1 | n/a | 2 | comportamiento + configuración + documentación | ~11 min (presupuesto acotado: 10 min / 30 mutaciones; 14 mutaciones ejecutadas, 11 muertas) | 1 | 3 | 5 | 1, 2, 3, 4, 5, 7, 9, 10 |
 
 Actas: [`docs/revisiones/sitio--pasada-1.md`](revisiones/sitio--pasada-1.md),
 [`docs/revisiones/sitio--pasada-2.md`](revisiones/sitio--pasada-2.md).
@@ -36,6 +36,12 @@ Actas: [`docs/revisiones/sitio--pasada-1.md`](revisiones/sitio--pasada-1.md),
 ## Cómo se lee este registro
 
 - **`n/d`** significa que el dato no consta en ningún artefacto publicado. No se estima.
+- **La columna PR lleva la cuenta por delante, y hace falta.** El repositorio migró de
+  `vigiabref/portafolio` a `Shatior/portafolio`, y la numeración de pull requests **se reinició**:
+  hay dos PR distintos que se llaman `#1`. Sin el prefijo, las dos filas de esta tabla parecerían
+  la misma revisión contada dos veces. La fila de la pasada 2 la anotó su revisora con `#2`, que
+  era el número previsto antes de abrir el PR; se corrigió al abrirlo y resultar ser el `#1` de la
+  cuenta nueva.
 - **`†`** marca una fila reconstruida: la anotó alguien distinto del revisor, o después de su
   informe. Su fecha y sus recuentos sobreviven a la reconstrucción; la duración y el criterio con
   que se asignó cada severidad, no.
