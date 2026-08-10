@@ -131,9 +131,28 @@ Es la condición que queda, y no se cierra con código. Las salidas son tres, po
 3. **Desplegar en Vercel** desde esa misma cuenta, si se recupera: el sitio generado es el mismo
    directorio estático y no cambia nada del código.
 
-Hasta entonces el sitio se publica en la URL de GitHub Pages del repositorio, que sí funciona. Se
-declara aquí en vez de descubrirse el día del lanzamiento, que es lo que este proyecto exige
+Se declara aquí en vez de descubrirse el día del lanzamiento, que es lo que este proyecto exige
 hacer con una laguna.
+
+### Requisito de lanzamiento pendiente: Pages no está activado
+
+**Comprobado, no supuesto**, en la ejecución del 2026-08-10: el job de construcción termina en
+verde —descarga los informes del pipeline público sin credencial, pasa los tests, construye y
+sube el artefacto— y el de publicación falla con
+
+```
+Failed to create deployment (status: 404) ... Ensure GitHub Pages has been enabled
+```
+
+Falta activar Pages en
+[`Settings → Pages`](https://github.com/Shatior/portafolio/settings/pages) con origen **GitHub
+Actions**. Es un interruptor de los ajustes del repositorio: no hay cambio de código que lo
+sustituya, y por eso no se ha «arreglado» aquí.
+
+Es hoy el bloqueante real, y va **antes** que el del DNS: sin Pages activado no hay nada
+publicado a lo que apuntar un dominio. Con Pages activado y el DNS todavía en Vercel, el sitio
+queda accesible en la URL `github.io` del repositorio, que es lo máximo alcanzable sin recuperar
+el dominio.
 
 ### GitHub Pages y la visibilidad del repositorio
 
