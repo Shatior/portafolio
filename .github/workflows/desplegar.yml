@@ -38,10 +38,19 @@ jobs:
         with:
           repository: Shatior/threat-intel-pipeline
           path: pipeline
-          # **Sin `token:` a propósito.** El pipeline es público, de modo que se lee sin
-          # credencial: `GITHUB_TOKEN` no alcanza a otro repositorio, pero para uno público no
-          # hace falta que alcance. Si volviera a hacerse privado, aquí haría falta otra vez un
-          # token de lectura de contenido sobre él, en los secretos de este repositorio.
+          # **Con `token:` porque el pipeline volvió a ser privado.** `GITHUB_TOKEN` está
+          # acotado a este repositorio y no alcanza al otro, así que hace falta un PAT
+          # fine-grained con Contents: read sobre `threat-intel-pipeline`, guardado aquí
+          # como `TOKEN_LECTURA_PIPELINE`.
+          #
+          # Ese token **caduca**. El día que lo haga, este paso falla y el sitio deja de
+          # reconstruirse: el fallo es ruidoso a propósito, porque la alternativa —seguir
+          # publicando las cifras del último día que funcionó— es el modo de fallo que
+          # todo este diseño existe para evitar.
+          #
+          # Si el pipeline vuelve a ser público, esta línea puede retirarse: un
+          # repositorio público se lee sin credencial.
+          token: ${{ secrets.TOKEN_LECTURA_PIPELINE }}
           # Solo se necesitan los ficheros de la última versión, no el historial.
           fetch-depth: 1
           sparse-checkout: reports
@@ -78,9 +87,28 @@ jobs:
         with:
           path: publico
 
+      - name: Declarar que hoy no se publica
+        # Un sitio que no se publica y no lo dice es indistinguible de uno publicado.
+        # Si el despliegue está apagado, que quede escrito en el propio job.
+        if: vars.PAGES_ACTIVO != 'true'
+        run: |
+          echo "::notice::Sitio construido y verificado, pero NO publicado: la variable" \
+               "PAGES_ACTIVO no vale 'true'. Con el repositorio en privado y plan Free," \
+               "GitHub Pages no está disponible. Al volver a público: reactiva Pages y pon" \
+               "PAGES_ACTIVO=true en Settings > Secrets and variables > Actions > Variables."
+
   desplegar:
     name: Publicar en Pages
     needs: construir
+    # **Interruptor de publicación.** GitHub Pages no existe en un repositorio privado
+    # con plan Free: sin esta condición, el job fallaría en cada ejecución diaria y
+    # entrenaría al mantenedor a ignorar el rojo. Con ella, el ciclo diario sigue
+    # haciendo lo que importa —traer el informe, pasar los tests, construir el sitio y
+    # guardar el artefacto— y solo se salta el último paso.
+    #
+    # Para reactivarlo: Settings > Secrets and variables > Actions > Variables,
+    # `PAGES_ACTIVO` = `true`, con Pages ya habilitado en el repositorio.
+    if: vars.PAGES_ACTIVO == 'true'
     runs-on: ubuntu-latest
     permissions:
       pages: write
