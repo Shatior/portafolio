@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Archiva los hilos de los pull requests antes de una migración con `git push --mirror`.
 
-    python scripts/archivar_pull_requests.py vigiabref/threat-intel-pipeline docs/pull-requests
+    python scripts/archivar_pull_requests.py Shatior/threat-intel-pipeline docs/pull-requests
 
 Se commitea para que el archivo sea **reejecutable y contrastable**: cualquiera puede volver a
 lanzarlo mientras los originales existan y comparar el resultado con lo que hay en el

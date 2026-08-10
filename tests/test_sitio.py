@@ -22,7 +22,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 #: Los únicos destinos externos admitidos, y solo como enlaces que el lector pulsa: el
 #: repositorio del pipeline y el propio dominio. Nada que el navegador **cargue** solo.
-DESTINOS_ADMITIDOS = ("https://github.com/vigiabref/", "https://vigiabref.com")
+DESTINOS_ADMITIDOS = ("https://github.com/Shatior/", "https://vigiabref.com")
 
 
 @pytest.fixture(scope="module")
@@ -189,7 +189,10 @@ def test_las_cifras_escritas_a_mano_son_exactamente_las_declaradas():
     from sitio import contenido
 
     assert contenido.CIFRAS_PROYECTO == [
-        ("467", "pruebas automatizadas"),
+        # 471 es la batería recolectada y ejecutada en verde sobre el pipeline en `4a7200e`,
+        # no una cifra tomada de un documento: el 467 anterior no coincidía ni con el conteo
+        # real ni con las 449 que declaraba el cierre de fase del que se copió.
+        ("471", "pruebas automatizadas"),
         ("2 · 1 · 0", "fuentes públicas · informe diario · intervenciones manuales"),
     ], (
         "la lista de cifras escritas a mano ha cambiado. Si la nueva depende de la última "

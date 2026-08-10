@@ -36,12 +36,12 @@ jobs:
       - name: Descargar los informes del pipeline
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          repository: vigiabref/threat-intel-pipeline
+          repository: Shatior/threat-intel-pipeline
           path: pipeline
-          # `GITHUB_TOKEN` solo alcanza a este repositorio. Para leer otro —privado— hace falta
-          # un token con permiso de lectura de contenido sobre él, en los secretos de este
-          # repositorio. Si el pipeline se hace público, esta línea puede retirarse.
-          token: ${{ secrets.TOKEN_LECTURA_PIPELINE }}
+          # **Sin `token:` a propósito.** El pipeline es público, de modo que se lee sin
+          # credencial: `GITHUB_TOKEN` no alcanza a otro repositorio, pero para uno público no
+          # hace falta que alcance. Si volviera a hacerse privado, aquí haría falta otra vez un
+          # token de lectura de contenido sobre él, en los secretos de este repositorio.
           # Solo se necesitan los ficheros de la última versión, no el historial.
           fetch-depth: 1
           sparse-checkout: reports

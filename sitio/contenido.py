@@ -12,7 +12,7 @@ que es la peor forma de envejecer: sigue pareciendo una medición.
 
 from __future__ import annotations
 
-REPO = "https://github.com/vigiabref/threat-intel-pipeline"
+REPO = "https://github.com/Shatior/threat-intel-pipeline"
 CORREO = "contacto@vigiabref.com"
 
 NOMBRE = "Miguel Ángel Sabater Requena"
@@ -111,8 +111,21 @@ VERIFICACION_HUMANA = (
 #: Cifras del repositorio que **no** dependen de la ejecución diaria. Se revisan a mano cuando
 #: cambian, y por eso son pocas y de grano grueso: una cifra que envejece rápido no vive aquí,
 #: vive en el informe.
+#:
+#: **Las pruebas se cuentan, no se copian.** El 467 anterior no salía de contar nada: se tomó
+#: de un documento de cierre de fase del pipeline, que a su vez declaraba 449. Dos cifras
+#: distintas, ninguna medida, y la que llegó al sitio no coincidía con ninguna de las dos. Es
+#: exactamente el defecto que este módulo existe para no cometer, cometido en el módulo que lo
+#: declara.
+#:
+#: El 471 es la batería real, recolectada y ejecutada en verde el 2026-08-10 sobre
+#: `Shatior/threat-intel-pipeline` en `4a7200e`. Se recuenta así, y hay que instalar el paquete
+#: —los tests que lanzan un subproceso no heredan el `pythonpath` de pytest y sin eso fallan
+#: dieciséis por un motivo que no es suyo—:
+#:
+#:     pip install -e . && python -m pytest tests/ -q
 CIFRAS_PROYECTO = [
-    ("467", "pruebas automatizadas"),
+    ("471", "pruebas automatizadas"),
     ("2 · 1 · 0", "fuentes públicas · informe diario · intervenciones manuales"),
 ]
 

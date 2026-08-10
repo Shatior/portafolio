@@ -7,7 +7,7 @@ dependencias en tiempo de ejecución.
 
 Tres vistas —portada, proyecto e informes— y **una página por informe publicado**. La parte que
 importa: la sección de informes y las cifras que la acompañan **se leen del repositorio
-[`threat-intel-pipeline`](https://github.com/vigiabref/threat-intel-pipeline)**, no se escriben
+[`threat-intel-pipeline`](https://github.com/Shatior/threat-intel-pipeline)**, no se escriben
 aquí.
 
 De cada informe se derivan los indicadores normalizados, las familias observadas, las que tienen
@@ -55,6 +55,23 @@ La maqueta la incumplía —cargaba Inter desde `fonts.googleapis.com` mientras 
 contrario—. Una promesa que solo puede cumplirse por atención se rompe el día que alguien añade
 un icono desde una CDN «solo para probar».
 
+## Revisión: este sitio hereda el protocolo del pipeline
+
+El sitio **no tiene protocolo de revisión propio: hereda el del pipeline**, que vive en
+[`docs/protocolo-revision.md`](https://github.com/Shatior/threat-intel-pipeline/blob/main/docs/protocolo-revision.md)
+de `Shatior/threat-intel-pipeline`. Se declara aquí porque la alternativa —no decir nada— deja
+un repositorio que se revisa con un protocolo que no menciona, y un acta en `docs/revisiones/`
+que cita reglas («presupuesto», «categorías», «independencia del acta») cuyo texto no está en
+ningún sitio al que este repositorio apunte.
+
+Lo que **sí** es propio es el registro: [`docs/metricas-revision.md`](docs/metricas-revision.md).
+La instrumentación cuenta pasadas de **este** repositorio, y mezclarlas con las del pipeline
+haría ilegibles las dos series. Hereda el protocolo, no el registro.
+
+Es la laguna que señaló la propia revisión —«si el sitio va a revisarse con este protocolo de
+forma recurrente, necesita su propio registro y su propio `docs/protocolo-revision.md`, o una
+declaración explícita de que hereda los del pipeline»—, cerrada por la vía de declararlo.
+
 ## Móvil
 
 Las dos cosas que peor sobreviven en pantalla estrecha se resuelven primero:
@@ -84,29 +101,39 @@ raíz del sitio por el propio generador.
 
 | Dónde | Secreto | Para qué |
 |---|---|---|
-| `portafolio` | `TOKEN_LECTURA_PIPELINE` | leer `reports/` del pipeline, que es un repositorio privado |
 | `threat-intel-pipeline` | `TOKEN_DISPARO_PORTAFOLIO` | emitir el `repository_dispatch` sobre este repositorio |
 
-`GITHUB_TOKEN` está acotado al repositorio en que se ejecuta: no puede leer otro ni dispararlo.
-Ambos son *fine-grained tokens* de un solo repositorio cada uno —lectura de contenido el
-primero, escritura de contenido el segundo—.
+`GITHUB_TOKEN` está acotado al repositorio en que se ejecuta: no puede dispararlo. Es un
+*fine-grained token* de un solo repositorio, con permiso de escritura de contenido.
 
-**Si el pipeline se hace público**, `TOKEN_LECTURA_PIPELINE` deja de hacer falta y esa línea del
-workflow se retira.
+**Leer el pipeline ya no necesita credencial.** `Shatior/threat-intel-pipeline` es público, de
+modo que el `checkout` de sus informes va sin `token:`. Antes hacía falta un
+`TOKEN_LECTURA_PIPELINE` en los secretos de este repositorio; ese secreto ya no lo usa nada y
+puede borrarse. Si el pipeline volviera a hacerse privado, habría que reponerlo.
 
 **Si falta `TOKEN_DISPARO_PORTAFOLIO`**, el workflow del pipeline avisa y sigue: el informe se
 publica igual y el sitio se queda con las cifras anteriores hasta el siguiente `push`. Se
 prefiere eso a enrojecer una ejecución que sí produjo su producto.
 
-### Requisito de lanzamiento: el pipeline tiene que ser público
+### Requisito de lanzamiento pendiente: el DNS de `vigiabref.com` no es nuestro
 
-El botón «El back — Repositorio» y el enlace «Ver el fichero original» de cada informe apuntan a
-`vigiabref/threat-intel-pipeline`. **Mientras ese repositorio sea privado, todos devuelven 404 a
-cualquier visitante**, en un sitio cuyo lema es «Aquí puedes comprobarlo». No es un defecto del
-código —los enlaces son correctos— sino una condición que hay que cumplir antes de publicar.
+El dominio está **delegado a una cuenta de Vercel a la que no se tiene acceso**. Hoy
+`vigiabref.com` no resuelve a GitHub Pages, y mientras siga así **el sitio no puede servirse
+ahí**: el `CNAME` que escribe el generador es correcto y no sirve de nada, porque el `CNAME` del
+repositorio solo dice a Pages qué dominio aceptar — quien decide adónde apunta el nombre son los
+registros DNS, y esos los controla la otra cuenta.
 
-Lo detectó la revisión independiente, y se escribe aquí porque es lo que este proyecto exige
-hacer con una laguna: declararla en vez de descubrirla el día del lanzamiento.
+Es la condición que queda, y no se cierra con código. Las salidas son tres, por orden de coste:
+
+1. **Recuperar el acceso a la cuenta de Vercel** y repuntar los registros a GitHub Pages.
+2. **Cambiar los servidores de nombres** en el registrador del dominio, que es quien manda sobre
+   la delegación, y rehacer los registros.
+3. **Desplegar en Vercel** desde esa misma cuenta, si se recupera: el sitio generado es el mismo
+   directorio estático y no cambia nada del código.
+
+Hasta entonces el sitio se publica en la URL de GitHub Pages del repositorio, que sí funciona. Se
+declara aquí en vez de descubrirse el día del lanzamiento, que es lo que este proyecto exige
+hacer con una laguna.
 
 ### GitHub Pages y la visibilidad del repositorio
 
