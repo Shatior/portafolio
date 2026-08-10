@@ -19,6 +19,7 @@ from pathlib import Path
 
 from . import contenido as c
 from .lector import Cifra, Informe
+from .rutas import Base
 
 
 def esc(valor: object) -> str:
@@ -30,7 +31,7 @@ def esc(valor: object) -> str:
 # --- Andamiaje ------------------------------------------------------------------------
 
 
-def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico: str) -> str:
+def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico: str, base: Base) -> str:
     nav = [
         ("Portada", "/", "portada"),
         ("Proyecto 01", "/proyecto/", "proyecto"),
@@ -38,7 +39,8 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
     ]
     actual = ' aria-current="page"'
     enlaces = "".join(
-        f'<a href="{esc(url)}"{actual if clave == activo else ""}>{esc(etiqueta)}</a>' for etiqueta, url, clave in nav
+        f'<a href="{esc(base.ruta(url))}"{actual if clave == activo else ""}>{esc(etiqueta)}</a>'
+        for etiqueta, url, clave in nav
     )
     return f"""<!doctype html>
 <html lang="es">
@@ -47,19 +49,19 @@ def _pagina(titulo: str, descripcion: str, activo: str, cuerpo: str, *, canonico
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(titulo)}</title>
 <meta name="description" content="{esc(descripcion)}">
-<link rel="canonical" href="https://vigiabref.com{esc(canonico)}">
+<link rel="canonical" href="{esc(base.url(canonico))}">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="{esc(titulo)}">
 <meta property="og:description" content="{esc(descripcion)}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://vigiabref.com{esc(canonico)}">
-<link rel="preload" href="/estatico/fuentes/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/estatico/estilo.css">
+<meta property="og:url" content="{esc(base.url(canonico))}">
+<link rel="preload" href="{esc(base.ruta("/estatico/fuentes/InterVariable.woff2"))}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{esc(base.ruta("/estatico/estilo.css"))}">
 </head>
 <body>
 <a class="saltar" href="#principal">Saltar al contenido</a>
 <header class="barra">
-  <a class="marca" href="/">vigiabref.com</a>
+  <a class="marca" href="{esc(base.ruta("/"))}">vigiabref.com</a>
   <nav class="nav" aria-label="Secciones">{enlaces}</nav>
 </header>
 <main id="principal">
@@ -118,10 +120,10 @@ def _nota_cifra(cifra: Cifra) -> str:
     return f'<p class="pie-nota">{esc(cifra.etiqueta.capitalize())}: {esc(cifra.nota)}.</p>'
 
 
-def _acciones(*, informes: bool = True) -> str:
+def _acciones(base: Base, *, informes: bool = True) -> str:
     partes = []
     if informes:
-        partes.append('<a class="boton" href="/informes/">El front — Informes</a>')
+        partes.append(f'<a class="boton" href="{esc(base.ruta("/informes/"))}">El front — Informes</a>')
     partes.append(f'<a class="boton boton--secundario" href="{esc(c.REPO)}" rel="noopener">El back — Repositorio</a>')
     return f'<div class="acciones">{"".join(partes)}</div>'
 
@@ -151,7 +153,7 @@ def _procedencia(ultimo: Informe, fuente: Informe | None) -> str:
     )
 
 
-def portada(ultimo: Informe, con_panorama: Informe | None = None) -> str:
+def portada(ultimo: Informe, con_panorama: Informe | None = None, *, base: Base) -> str:
     fuente = con_panorama
     porcentaje = fuente.porcentaje_sin_att_ck if fuente else None
     if porcentaje is None:
@@ -186,8 +188,8 @@ def portada(ultimo: Informe, con_panorama: Informe | None = None) -> str:
   {_nota_cifra(ultimo.indicadores)}
   <p class="parrafo">{esc(c.VERIFICACION)}</p>
   <p class="pie-nota">{esc(c.COMPETENCIAS)}</p>
-  {_acciones()}
-  <a class="enlace-suelto" href="/proyecto/">Leer el proyecto completo →</a>
+  {_acciones(base)}
+  <a class="enlace-suelto" href="{esc(base.ruta("/proyecto/"))}">Leer el proyecto completo →</a>
 </section>
 """
     return _pagina(
@@ -196,13 +198,14 @@ def portada(ultimo: Informe, con_panorama: Informe | None = None) -> str:
         "portada",
         cuerpo,
         canonico="/",
+        base=base,
     )
 
 
 # --- Proyecto -------------------------------------------------------------------------
 
 
-def proyecto(ultimo: Informe, con_panorama: Informe | None = None) -> str:
+def proyecto(ultimo: Informe, con_panorama: Informe | None = None, *, base: Base) -> str:
     tarjetas = "".join(f'<div class="tarjeta"><h4>{esc(t)}</h4><p>{esc(p)}</p></div>' for t, p in c.DECISIONES)
     metricas = "".join(
         f'<div class="tarjeta"><h4 style="color:inherit;font-size:14px">{esc(t)}</h4><p style="font-size:13px;color:var(--tinta-tenue)">{esc(p)}</p></div>'
@@ -256,7 +259,7 @@ def proyecto(ultimo: Informe, con_panorama: Informe | None = None) -> str:
 
   <div class="regla" style="margin-left:0;margin-right:0"></div>
   <div class="cifras cifras--tres">{cifras}</div>
-  {_acciones()}
+  {_acciones(base)}
 </section>
 """
     return _pagina(
@@ -265,19 +268,20 @@ def proyecto(ultimo: Informe, con_panorama: Informe | None = None) -> str:
         "proyecto",
         cuerpo,
         canonico="/proyecto/",
+        base=base,
     )
 
 
 # --- Informes -------------------------------------------------------------------------
 
 
-def _archivo(informes: list[Informe], actual: Informe) -> str:
+def _archivo(informes: list[Informe], actual: Informe, base: Base) -> str:
     fichas = []
     for i, informe in enumerate(informes):
         sub = "Informe más reciente" if i == 0 else informe.modo.capitalize()
         actual_attr = ' aria-current="page"' if informe.iso == actual.iso else ""
         fichas.append(
-            f'<a href="/informes/{esc(informe.iso)}/"{actual_attr}>'
+            f'<a href="{esc(base.ruta(f"/informes/{informe.iso}/"))}"{actual_attr}>'
             f'<span class="fecha">{esc(informe.etiqueta_corta)}</span>'
             f'<span class="estado">{esc(sub)}</span></a>'
         )
@@ -321,7 +325,7 @@ def _tabla_kev(informe: Informe) -> str:
 </table></div>"""
 
 
-def informes_pagina(informes: list[Informe], actual: Informe, *, canonico: str) -> str:
+def informes_pagina(informes: list[Informe], actual: Informe, *, canonico: str, base: Base) -> str:
     resumen = "".join(
         _dato_resumen(cifra)
         for cifra in (
@@ -347,7 +351,7 @@ def informes_pagina(informes: list[Informe], actual: Informe, *, canonico: str) 
 
     cuerpo = f"""
 <div class="informes">
-{_archivo(informes, actual)}
+{_archivo(informes, actual, base)}
 <article class="informe">
   <div>
     <span class="epigrafe">Informe diario · {esc(actual.etiqueta_larga)}</span>
@@ -372,6 +376,7 @@ def informes_pagina(informes: list[Informe], actual: Informe, *, canonico: str) 
         "informes",
         cuerpo,
         canonico=canonico,
+        base=base,
     )
 
 

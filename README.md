@@ -30,6 +30,13 @@ python -m http.server -d publico 8000
 pytest
 ```
 
+**`--base`, para cuando el sitio no se sirve en la raíz de su dominio.** Vacío por defecto, que
+es lo de siempre. Admite una URL completa —`https://shatior.github.io/portafolio`— o solo el
+prefijo —`/portafolio`—, y afecta a todas las rutas internas: navegación, hoja de estilo,
+tipografía, canónicas, `og:url`, sitemap y `robots.txt`. **El `CNAME` no**: no es una ruta del
+sitio, es el dominio que el sitio reclama como suyo, y no cambia porque una copia provisional se
+sirva en otro sitio.
+
 **Sin informes no hay sitio:** si el directorio no existe o no trae ningún fichero fechado, la
 construcción falla con código distinto de cero y no se despliega nada. Un sitio en verde con las
 cifras vacías es indistinguible de uno al día.
@@ -42,6 +49,7 @@ cifras vacías es indistinguible de uno al día.
 | `sitio/lector.py` | interpreta un informe; **lo que no encuentra, lo declara ausente** |
 | `sitio/render.py` | el HTML, en funciones |
 | `sitio/contenido.py` | la prosa — y ninguna cifra que produzca el informe diario |
+| `sitio/rutas.py` | dónde se sirve el sitio; **el único módulo que lo sabe** |
 | `estatico/` | la hoja de estilo y la tipografía |
 
 ## Sin recursos de terceros
@@ -134,25 +142,30 @@ Es la condición que queda, y no se cierra con código. Las salidas son tres, po
 Se declara aquí en vez de descubrirse el día del lanzamiento, que es lo que este proyecto exige
 hacer con una laguna.
 
-### Requisito de lanzamiento pendiente: Pages no está activado
+#### Mientras tanto, el sitio se sirve bajo un prefijo
 
-**Comprobado, no supuesto**, en la ejecución del 2026-08-10: el job de construcción termina en
-verde —descarga los informes del pipeline público sin credencial, pasa los tests, construye y
-sube el artefacto— y el de publicación falla con
+Pages está activado con origen GitHub Actions, de modo que **el sitio se publica hoy en
+[`shatior.github.io/portafolio/`](https://shatior.github.io/portafolio/)** — bajo un
+subdirectorio, no en la raíz de un dominio.
 
-```
-Failed to create deployment (status: 404) ... Ensure GitHub Pages has been enabled
-```
+Eso no es un detalle de URL: el sitio se escribió con rutas internas absolutas —`/informes/`,
+`/estatico/estilo.css`—, que son lo correcto en la raíz de `vigiabref.com` y **lo único
+correcto**, porque hay páginas a dos niveles de profundidad y una ruta relativa cambiaría de
+significado según quién la escriba. Bajo un subdirectorio esa misma corrección pide cada fichero
+a la raíz de `shatior.github.io`, donde no hay nada: el sitio saldría sin hoja de estilo, sin
+tipografía y con toda la navegación rota. **Y la construcción terminaría en verde**, porque el
+árbol de salida es idéntico — el fallo solo existe una vez servido.
 
-Falta activar Pages en
-[`Settings → Pages`](https://github.com/Shatior/portafolio/settings/pages) con origen **GitHub
-Actions**. Es un interruptor de los ajustes del repositorio: no hay cambio de código que lo
-sustituya, y por eso no se ha «arreglado» aquí.
+Lo resuelve `--base`, que el workflow de despliegue pasa como
+`https://shatior.github.io/portafolio`. Lo vigila
+`test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo`, que construye con prefijo y comprueba
+**todos** los `href` y `src` de todas las páginas, no una lista de los que hoy existen: el modo
+de fallo es que alguien añada mañana la ruta número catorce.
 
-Es hoy el bloqueante real, y va **antes** que el del DNS: sin Pages activado no hay nada
-publicado a lo que apuntar un dominio. Con Pages activado y el DNS todavía en Vercel, el sitio
-queda accesible en la URL `github.io` del repositorio, que es lo máximo alcanzable sin recuperar
-el dominio.
+**El prefijo se retira el día que `vigiabref.com` resuelva.** Es una línea del workflow, y sin
+ella el sitio vuelve a construirse desde la raíz — el resultado es byte a byte el de siempre, y
+hay un test que lo fija (`test_sin_prefijo_el_sitio_es_identico_al_de_siempre`). El `CNAME` y
+`dominio.txt` no se tocan mientras tanto: siguen siendo correctos para el destino final.
 
 ### GitHub Pages y la visibilidad del repositorio
 

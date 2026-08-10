@@ -98,7 +98,8 @@ def test_la_tipografia_se_sirve_desde_el_propio_dominio(sitio):
     css = (sitio / "estatico" / "estilo.css").read_text(encoding="utf-8")
 
     assert "@font-face" in css
-    assert "/estatico/fuentes/InterVariable.woff2" in css
+    # Relativa a la hoja, no a la raíz: es lo que la mantiene resolviendo bajo un prefijo.
+    assert 'url("fuentes/InterVariable.woff2")' in css
     assert (sitio / "estatico" / "fuentes" / "InterVariable.woff2").exists()
     # La licencia viaja con la fuente: es una obligación de la SIL OFL, no un adorno.
     assert (sitio / "estatico" / "fuentes" / "Inter-LICENSE.txt").exists()
@@ -229,6 +230,121 @@ def test_sin_informes_la_construccion_falla(tmp_path):
 
 def test_sin_directorio_de_informes_la_construccion_falla(tmp_path):
     assert construir(tmp_path / "no-existe", tmp_path / "publico") == 1
+
+
+# --- Servido bajo un prefijo ----------------------------------------------------------
+
+#: El despliegue provisional, mientras `vigiabref.com` no resuelva.
+BASE_PROVISIONAL = "https://shatior.github.io/portafolio"
+PREFIJO = "/portafolio"
+
+
+@pytest.fixture(scope="module")
+def sitio_con_prefijo(tmp_path_factory) -> Path:
+    destino = tmp_path_factory.mktemp("bajo-prefijo")
+    shutil.rmtree(destino)
+    assert construir(FIXTURES, destino, BASE_PROVISIONAL) == 0
+    return destino
+
+
+def test_ninguna_ruta_interna_apunta_a_la_raiz_bajo_prefijo(sitio_con_prefijo):
+    """**El defecto que rompe el sitio y no se ve hasta desplegarlo.**
+
+    Servido en `shatior.github.io/portafolio/`, un `href="/estatico/estilo.css"` pide el fichero
+    a `shatior.github.io/estatico/estilo.css` — que no existe. El sitio sale sin hoja de estilo,
+    sin tipografía y con la navegación entera apuntando a la raíz de un host ajeno, y **la
+    construcción termina en verde**: no hay nada en el árbol de salida que delate el fallo.
+
+    Se comprueba sobre **todos** los `href` y `src` de todas las páginas, no sobre una lista de
+    los que hoy existen: el modo de fallo es que alguien añada mañana la ruta número catorce.
+    """
+
+    for pagina in _paginas(sitio_con_prefijo):
+        html = pagina.read_text(encoding="utf-8")
+        rutas = re.findall(r'(?:href|src)="([^"]+)"', html)
+        absolutas = [r for r in rutas if r.startswith("/")]
+
+        assert absolutas, f"{pagina.name} no trae ninguna ruta interna: el test no vigila nada"
+        a_la_raiz = [r for r in absolutas if not r.startswith(f"{PREFIJO}/")]
+        assert not a_la_raiz, f"{pagina.name} apunta a la raíz del host: {a_la_raiz}"
+
+
+def test_el_css_no_pide_la_tipografia_a_la_raiz(sitio_con_prefijo):
+    """La hoja se copia tal cual, de modo que su `url()` **no** puede ser absoluta.
+
+    Es la ruta que ningún prefijo reescribe: si fuera `/estatico/fuentes/…`, el sitio bajo
+    subdirectorio se serviría con la tipografía rota y con todo lo demás bien, que es la forma
+    más fácil de que el fallo pase por decisión de diseño.
+    """
+
+    css = (sitio_con_prefijo / "estatico" / "estilo.css").read_text(encoding="utf-8")
+
+    for url in re.findall(r'url\(["\']?([^"\')]+)', css):
+        assert not url.startswith("/"), f"el CSS pide {url} a la raíz del host"
+
+
+def test_las_canonicas_y_el_sitemap_declaran_donde_se_sirve_la_copia(sitio_con_prefijo):
+    """Una canónica es una afirmación sobre cuál es la versión buena de esta página.
+
+    Publicar la copia provisional declarando canónicas en `vigiabref.com` señalaría como
+    versión buena una URL que hoy no resuelve.
+    """
+
+    portada = (sitio_con_prefijo / "index.html").read_text(encoding="utf-8")
+    assert f'<link rel="canonical" href="{BASE_PROVISIONAL}/">' in portada
+    assert f'content="{BASE_PROVISIONAL}/"' in portada
+
+    sitemap = (sitio_con_prefijo / "sitemap.xml").read_text(encoding="utf-8")
+    assert f"<loc>{BASE_PROVISIONAL}/proyecto/</loc>" in sitemap
+    assert "vigiabref.com" not in sitemap
+
+    robots = (sitio_con_prefijo / "robots.txt").read_text(encoding="utf-8")
+    assert f"Sitemap: {BASE_PROVISIONAL}/sitemap.xml" in robots
+
+
+def test_el_cname_no_lleva_prefijo_ni_cambia_con_el_host_provisional(sitio_con_prefijo):
+    """El CNAME no es una ruta: es el dominio que el sitio reclama como suyo.
+
+    Reescribirlo con el host provisional entregaría el dominio propio el día que se recupere.
+    """
+
+    assert (sitio_con_prefijo / "CNAME").read_text(encoding="utf-8").strip() == "vigiabref.com"
+
+
+def test_sin_prefijo_el_sitio_es_identico_al_de_siempre(sitio, tmp_path):
+    """«Vacío por defecto» tiene que significar **byte a byte lo de antes**, no «parecido».
+
+    Se construye una segunda vez pasando `base=""` explícitamente y se comparan los dos árboles
+    completos. Si el prefijo se colara en el camino por defecto —una barra de más, un origen
+    recompuesto—, aquí se ve; en una lista de rutas esperadas, no.
+    """
+
+    destino = tmp_path / "sin-base-explicita"
+    assert construir(FIXTURES, destino, "") == 0
+
+    por_defecto = {p.relative_to(sitio): p.read_bytes() for p in sitio.rglob("*") if p.is_file()}
+    explicito = {p.relative_to(destino): p.read_bytes() for p in destino.rglob("*") if p.is_file()}
+
+    assert por_defecto.keys() == explicito.keys()
+    distintos = [str(r) for r in por_defecto if por_defecto[r] != explicito[r]]
+    assert not distintos, f"`--base` vacío cambia el sitio: {distintos}"
+
+
+def test_un_prefijo_relativo_se_rechaza_y_no_borra_el_sitio_anterior(tmp_path):
+    """Un prefijo sin `/` inicial se resolvería contra la página que lo escribe, y las hay a dos
+    niveles: `/informes/2026-08-03/` lo leería como `/informes/2026-08-03/portafolio/`.
+
+    Se comprueba además que **el sitio anterior sigue ahí**. Una construcción que valida sus
+    argumentos después de vaciar el directorio de salida convierte una errata en la línea de
+    órdenes en un sitio caído.
+    """
+
+    destino = tmp_path / "publico"
+    assert construir(FIXTURES, destino) == 0
+    testigo = (destino / "index.html").read_bytes()
+
+    assert construir(FIXTURES, destino, "portafolio") == 1
+    assert (destino / "index.html").read_bytes() == testigo
 
 
 # --- Móvil ----------------------------------------------------------------------------

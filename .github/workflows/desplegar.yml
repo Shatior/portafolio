@@ -59,7 +59,16 @@ jobs:
       - name: Construir
         # Falla con código distinto de cero si no hay informes, y entonces **no se despliega**.
         # Publicar el sitio con las cifras en blanco sería indistinguible de publicarlo al día.
-        run: python construir.py --informes pipeline/reports --salida publico
+        #
+        # **`--base` es provisional.** Mientras `vigiabref.com` no resuelva, Pages sirve el sitio
+        # bajo `/portafolio/`, y sin prefijo todas las rutas internas pedirían sus ficheros a la
+        # raíz de `shatior.github.io`. El día que el dominio funcione se retira esta línea y el
+        # sitio vuelve a construirse desde la raíz, sin más cambios.
+        run: |
+          python construir.py \
+            --informes pipeline/reports \
+            --salida publico \
+            --base https://shatior.github.io/portafolio
 
       - name: Preparar el artefacto de Pages
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0

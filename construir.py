@@ -19,11 +19,12 @@ from pathlib import Path
 
 from sitio import render
 from sitio.lector import leer_informes
+from sitio.rutas import Base, interpretar
 
 RAIZ = Path(__file__).resolve().parent
 
 
-def construir(dir_informes: Path, destino: Path) -> int:
+def construir(dir_informes: Path, destino: Path, base: str = "") -> int:
     if not dir_informes.is_dir():
         print(f"error: no existe el directorio de informes: {dir_informes}", file=sys.stderr)
         return 1
@@ -38,6 +39,15 @@ def construir(dir_informes: Path, destino: Path) -> int:
         )
         return 1
 
+    # El dominio y el `--base` se resuelven **antes** de borrar nada: un `--base` mal escrito
+    # tiene que fallar con el sitio anterior todavía en su sitio, no dejar el directorio vacío.
+    dominio = (RAIZ / "dominio.txt").read_text(encoding="utf-8").strip()
+    try:
+        donde = interpretar(base, dominio)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+
     if destino.exists():
         shutil.rmtree(destino)
     destino.mkdir(parents=True)
@@ -49,33 +59,40 @@ def construir(dir_informes: Path, destino: Path) -> int:
     # portada muestra un guion con su motivo.
     con_panorama = next((i for i in informes if i.panorama_publicado), None)
 
-    render.escribir(destino, "/", render.portada(ultimo, con_panorama))
-    render.escribir(destino, "/proyecto/", render.proyecto(ultimo, con_panorama))
+    render.escribir(destino, "/", render.portada(ultimo, con_panorama, base=donde))
+    render.escribir(destino, "/proyecto/", render.proyecto(ultimo, con_panorama, base=donde))
 
     # `/informes/` es el más reciente: es el destino por defecto de los dos botones del sitio.
-    render.escribir(destino, "/informes/", render.informes_pagina(informes, ultimo, canonico="/informes/"))
+    render.escribir(destino, "/informes/", render.informes_pagina(informes, ultimo, canonico="/informes/", base=donde))
     for informe in informes:
         render.escribir(
             destino,
             f"/informes/{informe.iso}/",
-            render.informes_pagina(informes, informe, canonico=f"/informes/{informe.iso}/"),
+            render.informes_pagina(informes, informe, canonico=f"/informes/{informe.iso}/", base=donde),
         )
 
     shutil.copytree(RAIZ / "estatico", destino / "estatico")
 
     # GitHub Pages exige el CNAME en la **raíz** del sitio publicado, no dentro de `estatico/`:
     # ahí lo serviría como un fichero más y el dominio propio no se aplicaría.
-    dominio = (RAIZ / "dominio.txt").read_text(encoding="utf-8").strip()
+    #
+    # **No lleva prefijo ni depende de `--base`, y es deliberado.** El CNAME no es una ruta del
+    # sitio: es el dominio que este sitio reclama como suyo. Servir la copia provisional bajo
+    # otro host no cambia cuál es ese dominio.
     (destino / "CNAME").write_text(f"{dominio}\n", encoding="utf-8")
 
     # Sin JavaScript en el sitio, de modo que no hay nada que rastrear; el `robots.txt` existe
     # para no dejar el 404 que algunos rastreadores registran como error del dominio.
     (destino / "robots.txt").write_text(
-        "User-agent: *\nAllow: /\nSitemap: https://vigiabref.com/sitemap.xml\n", encoding="utf-8"
+        f"User-agent: *\nAllow: /\nSitemap: {donde.url('/sitemap.xml')}\n", encoding="utf-8"
     )
-    _sitemap(destino, informes)
+    _sitemap(destino, informes, donde)
 
     print(f"Construido en {destino}: {len(informes)} informes, el más reciente {ultimo.iso}.")
+    if donde.prefijo or donde.origen != f"https://{dominio}":
+        # Se declara al construir porque un sitio con prefijo **no** es servible desde la raíz:
+        # publicar por error en `/` este directorio daría 404 en todas las hojas de estilo.
+        print(f"  servido bajo {donde.url('/')} — provisional, no desde la raíz de {dominio}")
     if con_panorama is None:
         print("  ningún informe publica el panorama de familias: la medición destacada no se publica")
     elif con_panorama.iso != ultimo.iso:
@@ -93,9 +110,9 @@ def construir(dir_informes: Path, destino: Path) -> int:
     return 0
 
 
-def _sitemap(destino: Path, informes: list) -> None:
+def _sitemap(destino: Path, informes: list, donde: Base) -> None:
     urls = ["/", "/proyecto/", "/informes/"] + [f"/informes/{i.iso}/" for i in informes]
-    cuerpo = "".join(f"<url><loc>https://vigiabref.com{u}</loc></url>" for u in urls)
+    cuerpo = "".join(f"<url><loc>{donde.url(u)}</loc></url>" for u in urls)
     (destino / "sitemap.xml").write_text(
         f'<?xml version="1.0" encoding="UTF-8"?>'
         f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{cuerpo}</urlset>',
@@ -112,8 +129,18 @@ def main() -> int:
         help="Directorio `reports/` del repositorio del pipeline.",
     )
     parser.add_argument("--salida", type=Path, default=RAIZ / "publico", help="Directorio de salida.")
+    parser.add_argument(
+        "--base",
+        default="",
+        help=(
+            "Dónde se sirve el sitio, cuando no es la raíz de su propio dominio. Vacío por "
+            "defecto —el sitio vive en `https://<dominio.txt>/` y se construye como siempre—. "
+            "Admite una URL completa (`https://shatior.github.io/portafolio`) o solo el prefijo "
+            "(`/portafolio`), que conserva el dominio propio en las canónicas."
+        ),
+    )
     args = parser.parse_args()
-    return construir(args.informes.resolve(), args.salida.resolve())
+    return construir(args.informes.resolve(), args.salida.resolve(), args.base)
 
 
 if __name__ == "__main__":

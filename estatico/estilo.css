@@ -16,7 +16,9 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap; /* el texto se lee con la de sistema mientras llega la nuestra */
-  src: url("/estatico/fuentes/InterVariable.woff2") format("woff2");
+  /* Relativa a esta hoja, no a la raíz del dominio: así la tipografía sigue resolviendo
+     cuando el sitio se sirve bajo un subdirectorio, sin reescribir el CSS al construir. */
+  src: url("fuentes/InterVariable.woff2") format("woff2");
 }
 
 :root {
